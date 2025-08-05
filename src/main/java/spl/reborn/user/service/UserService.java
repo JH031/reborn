@@ -1,6 +1,8 @@
 package spl.reborn.user.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import spl.reborn.user.dto.SignUpRequest;
@@ -10,8 +12,8 @@ import spl.reborn.user.repository.UserRepository;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
 
     public void registerUser(SignUpRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -25,11 +27,17 @@ public class UserService {
         User user = new User();
         user.setName(request.getName());
         user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(request.getPassword());
         user.setEmail(request.getEmail());
         user.setGrade(request.getGrade());
         user.setSchool(request.getSchool());
 
         userRepository.save(user);
     }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("해당 이메일 사용자가 존재하지 않습니다: " + email));
+    }
 }
+
