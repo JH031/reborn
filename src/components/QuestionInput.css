@@ -1,0 +1,26 @@
+/* src/components/QuestionInput.css */
+.question-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 60px 20px;
+  background-color: pink;
+  border-radius: 20px;
+  padding: 10px;
+}
+
+.question-box input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  margin-right: 10px;
+}
+
+.question-box button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 10px;
+  background-color: white;
+  cursor: pointer;
+}

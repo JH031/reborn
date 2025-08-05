@@ -1,0 +1,29 @@
+/* src/components/Layout/Header.css */
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  font-size: 18px;
+}
+
+.logo {
+  font-weight: bold;
+  color: pink;
+  font-size: 24px;
+}
+.login-btn {
+  background-color: pink;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
+.auth-links a {
+  text-decoration: none;
+  color: black;
+  margin-left: 5px;
+}
