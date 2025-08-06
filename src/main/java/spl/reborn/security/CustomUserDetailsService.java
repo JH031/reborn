@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository;
 
+import java.util.ArrayList;
+
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -15,14 +17,15 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email));
+    public UserDetails loadUserByUsername(String userid) throws UsernameNotFoundException {
+        User user = userRepository.findByUserid(userid)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userid));
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .authorities("USER") // 권한 필요 시 확장 가능
-                .build();
+        return new org.springframework.security.core.userdetails.User(
+                user.getUserid(),
+                user.getPassword(),
+                new ArrayList<>()
+        );
     }
+
 }

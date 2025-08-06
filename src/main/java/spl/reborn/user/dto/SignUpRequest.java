@@ -11,6 +11,8 @@ import spl.reborn.user.entity.SchoolType;
 @Getter
 public class SignUpRequest {
 
+    private String userid;
+
     @NotBlank
     private String name;
 

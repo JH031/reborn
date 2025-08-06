@@ -28,13 +28,13 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userService.findByEmail(request.getEmail());
+        User user = userService.findByUserid(request.getUserid());
 
 
         System.out.println("입력된 비밀번호: " + request.getPassword());
         System.out.println("DB 저장된 비밀번호: " + user.getPassword());
 
-        // ✅ 비밀번호 평문 비교
+
         if (!request.getPassword().equals(user.getPassword())) {
             return ResponseEntity.status(401).body("비밀번호가 일치하지 않습니다.");
         }
