@@ -41,10 +41,7 @@ public class S3Service {
             s3Client.putObject(req);
 
             String region = s3Client.getRegionName(); // 예: ap-northeast-2
-            String encodedKey = URLEncoder.encode(objectKey, StandardCharsets.UTF_8);
-
-            // 권장 virtual-hosted-style URL
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, encodedKey);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectKey);
 
         } catch (AmazonServiceException e) {
             // S3가 에러 응답을 보낸 경우
