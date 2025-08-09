@@ -6,8 +6,5 @@ import spl.reborn.user.entity.User;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    boolean existsByUsername(String username);
-
-    Optional<User> findByUsername(String username);
     Optional<User> findByUserid(String userid);
 }

@@ -11,13 +11,11 @@ import spl.reborn.user.entity.SchoolType;
 @Getter
 public class SignUpRequest {
 
+    @NotBlank
     private String userid;
 
     @NotBlank
     private String name;
-
-    @NotBlank
-    private String username;
 
     @NotBlank
     private String password;

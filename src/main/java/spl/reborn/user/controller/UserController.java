@@ -39,7 +39,7 @@ public class UserController {
             return ResponseEntity.status(401).body("비밀번호가 일치하지 않습니다.");
         }
 
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user.getName());
         return ResponseEntity.ok(new TokenResponse(token));
     }
 }

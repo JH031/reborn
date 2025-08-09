@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/api/users/signup","/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/users/login").permitAll() // 회원가입은 누구나 접근 가능
+                        .requestMatchers("/api/users/signup","/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/users/login","/upload").permitAll() // 회원가입은 누구나 접근 가능
                         .anyRequest().authenticated() // 나머지는 인증 필요
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
