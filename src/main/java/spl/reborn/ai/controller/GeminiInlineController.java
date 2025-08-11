@@ -1,5 +1,6 @@
 package spl.reborn.ai.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,8 @@ public class GeminiInlineController {
 
     private final GeminiInlineService service;
 
-    @PostMapping("/generate-from-url")
+    @Operation(summary = "사진 넘기고 gemini 대답 받아오기")
+    @PostMapping("/ans_from_gemini")
     public ResponseEntity<String> generateFromUrl(@RequestBody Req req) {
         String result = service.generateFromImageUrl(req.getUrl(), req.getPrompt());
         return ResponseEntity.ok(result);
