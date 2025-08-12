@@ -28,4 +28,6 @@ public class SignUpRequest {
     private int grade;
 
     private SchoolType school;
+
+    public boolean receiveReminders; //메일수신 체크박스로 선택
 }

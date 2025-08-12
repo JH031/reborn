@@ -13,10 +13,10 @@ public class JwtUtil {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256); // 자동 생성 키
     private final long EXPIRATION_TIME = 3600000; // 1시간
 
-    public String generateToken(String email) {
+    public String generateToken(String userid) {
         Date now = new Date();
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(userid)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + EXPIRATION_TIME))
                 .signWith(key)
@@ -24,6 +24,15 @@ public class JwtUtil {
     }
 
     public String getEmail(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+
+    public String extractUsername(String token) { // username == userid
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()

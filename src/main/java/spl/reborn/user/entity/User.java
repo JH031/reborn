@@ -28,4 +28,6 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private SchoolType school;
+
+    private boolean receiveReminders = false; // 복습 알림을 받기 위한 메일 수신 동의
 }

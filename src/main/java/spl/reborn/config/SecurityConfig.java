@@ -20,39 +20,37 @@ import spl.reborn.security.JwtUtil;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtUtil jwtUtil,
-                                                   CustomUserDetailsService userDetailsService) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtUtil jwtUtil,
+            CustomUserDetailsService userDetailsService,
+            spl.reborn.security.SelfAccessGuardFilter selfAccessGuardFilter
+    ) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-
-                        .requestMatchers("/api/users/signup","/ai/**","/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/users/login","/upload/**").permitAll() // 회원가입은 누구나 접근 가능
-                        .anyRequest().authenticated() // 나머지는 인증 필요
+                        .requestMatchers(
+                                "/api/users/signup",
+                                "/api/users/login",
+                                "/ai/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/upload/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                        (req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                ))
+                // JWT 인증 필터는 먼저
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                // ★ 사용자 자기자신만 허용하는 가드 필터는 이후에
+                .addFilterAfter(selfAccessGuardFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    // CORS 허용 설정
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOrigins("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(false);
-            }
-        };
     }
 }
