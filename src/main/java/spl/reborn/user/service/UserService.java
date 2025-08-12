@@ -40,6 +40,6 @@ public class UserService {
 
     public User findByUserid(String userid) {
         return userRepository.findByUserid(userid)
-                .orElseThrow(() -> new UsernameNotFoundException("해당 아이디 사용자가 존재하지 않습니다: " + userid));
+                .orElseThrow(() -> new UsernameNotFoundException("사용가능한 아이디입니다: " + userid));
     }
 }
