@@ -14,7 +14,7 @@ public class GeminiInlineController {
 
     private final GeminiInlineService service;
 
-    @Operation(summary = "사진 넘기고 gemini 대답 받아오기")
+    @Operation(summary = "(테스트)사진 넘기고 gemini 대답 받아오기")
     @PostMapping("/ans_from_gemini")
     public ResponseEntity<String> generateFromUrl(@RequestBody Req req) {
         String result = service.generateFromImageUrl(req.getUrl(), req.getPrompt());

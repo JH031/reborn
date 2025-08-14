@@ -15,6 +15,7 @@ import spl.reborn.problem.entity.AnalysisOption;
 import spl.reborn.problem.entity.Problem;
 import spl.reborn.problem.repository.AnalysisRepository;
 import spl.reborn.problem.repository.ProblemRepository;
+import spl.reborn.problem.support.AnalysisDisplayMapper;
 import spl.reborn.s3.service.S3Service;
 import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository;
@@ -24,6 +25,7 @@ import spl.reborn.problem.support.SubjectConceptRefiner;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -75,10 +77,10 @@ public class ProblemFlowService {
         String prompt = hint; // GeminiInlineService 내부에 기본 시스템 프롬프트(DEFAULT_ANALYSIS_PROMPT)가 존재
 
         // 3) Gemini 호출 (이미지 URL 인라인)
-        String geminiResponse = geminiService.generateFromImageUrl(imageUrl, prompt);
+        String geminiRaw = geminiService.generateFromImageUrl(imageUrl, prompt);
 
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
-        enrichProblem(problem, geminiResponse);
+        enrichProblem(problem, geminiRaw);
 
         // 5) Analysis 저장 (turn=1)
         Analysis a = new Analysis();
@@ -86,17 +88,18 @@ public class ProblemFlowService {
         a.setTurn(1);
         a.setOption(option);
         a.setUserRequest(null); // 최초 턴은 사용자가 프롬프트를 보내지 않음(요구사항)
-        a.setGeminiResponse(geminiResponse);
+        a.setGeminiResponse(geminiRaw);
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
+        Map<String, Object> display = AnalysisDisplayMapper.toDisplay(geminiRaw, option, objectMapper);
         return AnalyzeFirstResponse.builder()
                 .problemId(problem.getProblemId())
                 .imageUrl(imageUrl)
                 .analysisId(a.getAnalysisId())
                 .turn(1)
                 .option(option)
-                .geminiResponse(geminiResponse)
+                .display(display)
                 .build();
     }
 
@@ -137,8 +140,7 @@ public class ProblemFlowService {
 
         String followUpPrompt = AnalysisPrompts.followUp(recentSummaries.toString(), userPrompt);
 
-        // 후속은 텍스트만 전송
-        String geminiResponse = geminiService.generateFromText(followUpPrompt);
+        String geminiRaw = geminiService.generateFromText(followUpPrompt);
 
         // 저장(option=null)
         Analysis a = new Analysis();
@@ -146,18 +148,21 @@ public class ProblemFlowService {
         a.setTurn(nextTurn);
         a.setOption(null);
         a.setUserRequest(userPrompt);
-        a.setGeminiResponse(geminiResponse);
+        a.setGeminiResponse(geminiRaw);
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
         // 필요시 보강 업데이트 시도(새 정보가 있으면)
-        enrichProblem(problem, geminiResponse);
+        enrichProblem(problem, geminiRaw);
 
+        Analysis base = analysisRepository.findTopByProblem_ProblemIdAndOptionIsNotNullOrderByTurnDesc(problemId);
+        AnalysisOption displayOption = (base != null) ? base.getOption() : AnalysisOption.APPROACH;
+        Map<String, Object> display = AnalysisDisplayMapper.toDisplay(geminiRaw, displayOption, objectMapper);
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .geminiResponse(geminiResponse)
+                .display(display)
                 .build();
     }
 
