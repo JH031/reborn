@@ -23,7 +23,7 @@ public class ReminderService {
     private final ReminderRepository reminderRepository;
     private final EmailService emailService;
 
-    private static final int[] OFFSETS = {1, 3, 7, 30};
+    private static final int[] OFFSETS = {1, 4, 7, 14, 30};
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final LocalTime DEFAULT_SEND_TIME = LocalTime.of(9, 0);
 
