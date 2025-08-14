@@ -19,11 +19,13 @@ public class Problem {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1024) // S3 URL 대비 넉넉히
     private String imageUrl;
 
+    @Column(length = 32)   // 예: "수학", "과학" 등
     private String subject;
 
+    @Column(length = 128)  // 예: "미분", "이차방정식", "벡터 내적" 등
     private String mainConcept;
 
     private LocalDateTime createdAt = LocalDateTime.now();

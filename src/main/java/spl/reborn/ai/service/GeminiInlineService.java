@@ -88,6 +88,7 @@ public class GeminiInlineService {
 - 여러 문제가 보이면 가장 명확한 1~2개만 처리.
 - 수식은 간단한 LaTeX 또는 평문 사용.
 - 각 필드는 간결히 작성.
+- 절대 ```json 같은 코드블록으로 감싸지 말고, 순수 JSON만 출력하라.
 """;
 
     /** 퍼블릭/프리사인드 S3 URL을 인라인(Base64)로 변환해 Gemini 호출 */
@@ -117,7 +118,7 @@ public class GeminiInlineService {
 
         String instruction = (prompt == null || prompt.isBlank())
                 ? DEFAULT_ANALYSIS_PROMPT
-                : prompt;
+                : DEFAULT_ANALYSIS_PROMPT + "\n\n" + prompt;
 
         // 4) 요청 바디 구성
         Map<String, Object> body = Map.of(

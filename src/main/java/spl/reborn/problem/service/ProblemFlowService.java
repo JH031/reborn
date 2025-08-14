@@ -1,6 +1,5 @@
 package spl.reborn.problem.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,11 +18,12 @@ import spl.reborn.problem.repository.ProblemRepository;
 import spl.reborn.s3.service.S3Service;
 import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository;
+import spl.reborn.problem.support.SubjectConceptExtractor;
+import spl.reborn.problem.support.SubjectConceptRefiner;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -78,7 +78,7 @@ public class ProblemFlowService {
         String geminiResponse = geminiService.generateFromImageUrl(imageUrl, prompt);
 
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
-        enrichProblemFromJson(problem, geminiResponse);
+        enrichProblem(problem, geminiResponse);
 
         // 5) Analysis 저장 (turn=1)
         Analysis a = new Analysis();
@@ -151,7 +151,7 @@ public class ProblemFlowService {
         analysisRepository.save(a);
 
         // 필요시 보강 업데이트 시도(새 정보가 있으면)
-        enrichProblemFromJson(problem, geminiResponse);
+        enrichProblem(problem, geminiResponse);
 
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
@@ -161,28 +161,41 @@ public class ProblemFlowService {
                 .build();
     }
 
-    /** JSON에서 subject/mainConcept 추출 시도 (실패해도 예외없이 무시) */
-    private void enrichProblemFromJson(Problem p, String jsonLike) {
-        try {
-            Map<String, Object> map = objectMapper.readValue(jsonLike, new TypeReference<Map<String, Object>>() {});
-            Object subject = map.get("subject");
-            if (subject instanceof String s && !s.isBlank()) {
-                p.setSubject(s);
-            }
-            // mainConcept 후보: needed_concepts[0] 이나 problem_summary에서 키워드 추출 등
-            Object needed = map.get("needed_concepts");
-            if (needed instanceof List<?> list && !list.isEmpty()) {
-                Object first = list.get(0);
-                if (first instanceof String s && !s.isBlank()) {
-                    p.setMainConcept(s);
-                }
-            }
-            // 저장
+    /** JSON/문장에서 subject/mainConcept를 추출해 Problem에 채움 */
+    private void enrichProblem(Problem p, String geminiRaw) {
+        SubjectConceptExtractor.Result r = SubjectConceptExtractor.extract(geminiRaw, objectMapper);
+
+        // 1차 시도 실패면 가볍게 재요청해서 JSON만 받기
+        if (r == null) {
+            try {
+                String refined = SubjectConceptRefiner.refine(geminiService, geminiRaw);
+                r = SubjectConceptExtractor.extract(refined, objectMapper);
+            } catch (Exception ignore) {}
+        }
+
+        if (r == null) return;
+
+        boolean changed = false;
+
+        // subject: 비어있으면 채우고, 다른 값이면 최신으로 갱신할지 정책 선택
+        if (isBlank(p.getSubject()) && notBlank(r.subject())) {
+            p.setSubject(r.subject());
+            changed = true;
+        }
+
+        // mainConcept도 동일 정책
+        if (isBlank(p.getMainConcept()) && notBlank(r.mainConcept())) {
+            p.setMainConcept(r.mainConcept());
+            changed = true;
+        }
+
+        if (changed) {
             problemRepository.save(p);
-        } catch (Exception ignore) {
-            // Gemini 응답이 JSON이 아니거나 필드가 없으면 조용히 패스
         }
     }
+
+    private static boolean isBlank(String s){ return s == null || s.isBlank(); }
+    private static boolean notBlank(String s){ return s != null && !s.isBlank(); }
 
     private String trimForContext(String s) {
         if (s == null) return "";
