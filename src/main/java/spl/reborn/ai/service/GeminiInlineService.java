@@ -176,4 +176,28 @@ public class GeminiInlineService {
             return res.toString();
         }
     }
+
+    public String generateFromText(String prompt) {
+        Map<String, Object> body = Map.of(
+                "contents", List.of(
+                        Map.of("parts", List.of(
+                                Map.of("text", prompt)
+                        ))
+                )
+        );
+
+        Map<?, ?> res = http.post()
+                .uri(apiUrl + "?key=" + apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(s -> s.is4xxClientError() || s.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class).map(bodyText ->
+                                new RuntimeException("Gemini POST failed " + resp.statusCode() + ": " + bodyText)))
+                .bodyToMono(Map.class)
+                .block();
+
+        return extractText(res);
+    }
+
 }
