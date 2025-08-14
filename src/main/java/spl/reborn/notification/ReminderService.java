@@ -27,8 +27,22 @@ public class ReminderService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final LocalTime DEFAULT_SEND_TIME = LocalTime.of(9, 0);
 
-    /** 학습 콘텐츠 저장 시: 해당 콘텐츠마다 1/3/7/30일 예약 생성 */
+    /**
+     * 학습 콘텐츠 저장 시: 해당 콘텐츠마다 1/4/7/14/30일 예약 생성
+     * (기준일: studyDate, null이면 오늘)
+     */
     public void createForStudy(long userId, Long contentId, String contentTitle, LocalDate studyDate) {
+        LocalDate base = (studyDate != null) ? studyDate : LocalDate.now(KST);
+        String title = (contentTitle == null || contentTitle.isBlank()) ? "복습 알림" : contentTitle;
+        scheduleOffsetsFromDate(userId, contentId, title, base);
+    }
+
+    /**
+     * ✅ 임의의 시작일(startDate) 기준으로 1/4/7/14/30 예약 생성.
+     * - 사용자 수신 동의 OFF면 아무 것도 하지 않음
+     * - 같은 콘텐츠의 미발송 예약은 먼저 삭제(중복 방지)
+     */
+    public void scheduleOffsetsFromDate(long userId, Long contentId, String contentTitle, LocalDate startDate) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
         if (!user.isReceiveReminders()) return;
@@ -38,19 +52,30 @@ public class ReminderService {
             reminderRepository.deleteByUser_IdAndContentIdAndSentFalse(userId, contentId);
         }
 
-        LocalDate base = (studyDate != null) ? studyDate : LocalDate.now(KST);
         String title = (contentTitle == null || contentTitle.isBlank()) ? "복습 알림" : contentTitle;
 
         for (int d : OFFSETS) {
+            LocalDate dueDate = startDate.plusDays(d);
+            LocalDateTime dueAt = LocalDateTime.of(dueDate, DEFAULT_SEND_TIME);
+
             Reminder r = new Reminder();
             r.setUser(user);
             r.setContentId(contentId);
             r.setContentTitle(title);
             r.setOffsetDays(d);
-            r.setDueAt(LocalDateTime.of(base.plusDays(d), DEFAULT_SEND_TIME));
+            r.setDueAt(dueAt);
             r.setSent(false);
             reminderRepository.save(r);
         }
+    }
+
+    /**
+     * ✅ NOT_UNDERSTOOD 처리용: 내일부터 다시 1/4/7/14/30 재예약
+     * - 같은 콘텐츠의 미발송 예약은 먼저 삭제
+     */
+    public void resetFromTomorrow(long userId, Long contentId, String contentTitle) {
+        LocalDate startDate = LocalDate.now(KST).plusDays(1);
+        scheduleOffsetsFromDate(userId, contentId, contentTitle, startDate);
     }
 
     /** 사용자 단위 기본 예약 생성(옵션) */
@@ -74,7 +99,9 @@ public class ReminderService {
         }
     }
 
-    /** 지금 보낼 알림을 찾아 전송. 경합/중복 호출이어도 한 번만 나가도록 방어 */
+    /**
+     * 지금 보낼 알림을 찾아 전송. 경합/중복 호출이어도 한 번만 나가도록 방어
+     */
     public void sendDueReminders() {
         LocalDateTime now = LocalDateTime.now(KST);
         List<Reminder> dueList = reminderRepository.findDue(now);
@@ -86,7 +113,8 @@ public class ReminderService {
             if (!u.isReceiveReminders()) {
                 int skip = reminderRepository.markSentIfPending(r.getId());
                 if (skip == 1) {
-                    log.info("[REMINDER] skipped(send off) id={}, contentId={}, offset={}", r.getId(), r.getContentId(), r.getOffsetDays());
+                    log.info("[REMINDER] skipped(send off) id={}, contentId={}, offset={}",
+                            r.getId(), r.getContentId(), r.getOffsetDays());
                 }
                 continue;
             }
@@ -106,7 +134,8 @@ public class ReminderService {
                 }
             } else {
                 // 누군가 이미 처리한 건
-                log.debug("[REMINDER] already handled id={}, contentId={}, offset={}", r.getId(), r.getContentId(), r.getOffsetDays());
+                log.debug("[REMINDER] already handled id={}, contentId={}, offset={}",
+                        r.getId(), r.getContentId(), r.getOffsetDays());
             }
         }
     }
