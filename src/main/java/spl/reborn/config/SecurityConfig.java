@@ -6,15 +6,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import spl.reborn.security.CustomUserDetailsService;
 import spl.reborn.security.JwtAuthenticationFilter;
 import spl.reborn.security.JwtUtil;
+
+// ✅ 아래 5줄의 import 문을 추가하거나 확인해주세요.
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
+import static org.springframework.security.config.Customizer.withDefaults;
+
 
 @Configuration
 public class SecurityConfig {
@@ -28,32 +32,41 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                .cors(withDefaults()) // 이 부분의 빨간 줄이 사라집니다.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/users/signup",
                                 "/api/users/login",
-                                "/api/users/check-userid",
-                                "/api/users/check-email",
                                 "/ai/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/upload/**",
-                                "/error"
+                                "/upload/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         (req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED)
                 ))
-                // JWT 인증 필터는 먼저
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class)
-                // ★ 사용자 자기자신만 허용하는 가드 필터는 이후에
                 .addFilterAfter(selfAccessGuardFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() { // 이 부분의 빨간 줄들이 사라집니다.
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
