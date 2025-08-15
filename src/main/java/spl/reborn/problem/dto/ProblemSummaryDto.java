@@ -2,12 +2,12 @@ package spl.reborn.problem.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
-public class ChatHistoryResponse {
+public class ProblemSummaryDto {
     private Long problemId;
-    private String originalImageUrl;
-    private List<ChatTurnDto> chatTurns;
+    private String title;
+    private LocalDateTime createdAt;
 }

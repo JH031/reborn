@@ -309,26 +309,6 @@ public class ProblemFlowService {
             throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
         }
 
-        // 3. 제목 추출 (turn=1 분석 결과에서)
-        Analysis firstTurn = analyses.get(0);
-        String title = "제목 없음";
-        if (firstTurn.getTurn() == 1 && firstTurn.getGeminiResponse() != null) {
-            try {
-                // ✅ Gemini 응답에서 Markdown 코드 블록을 제거합니다.
-                String cleanedJson = cleanGeminiResponse(firstTurn.getGeminiResponse());
-
-                // ✅ 정제된 JSON 문자열로 파싱을 시도합니다.
-                Map<String, Object> firstResponseMap = objectMapper.readValue(
-                        cleanedJson, new TypeReference<>() {}
-                );
-
-                // "problem_summary" 값을 제목으로 사용
-                title = (String) firstResponseMap.getOrDefault("problem_summary", "제목 없음");
-            } catch (IOException e) {
-                log.warn("turn=1 분석 결과의 JSON 파싱 실패, problemId={}", problemId, e);
-            }
-        }
-
         // 4. Analysis 목록을 ChatTurnDto 목록으로 변환
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
@@ -356,9 +336,45 @@ public class ProblemFlowService {
         // 5. 최종 응답 DTO 생성 및 반환
         return new ChatHistoryResponse(
                 problem.getProblemId(),
-                title,
                 problem.getOriginalImageUrl(),
                 chatTurns
         );
+
+    }
+    @Transactional(readOnly = true)
+    public List<ProblemSummaryDto> getProblemList(Long userId) {
+        // 1. 해당 사용자의 모든 Problem을 최신순으로 조회
+        List<Problem> problems = problemRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+
+        List<ProblemSummaryDto> problemSummaries = new ArrayList<>();
+
+        // 2. 각 Problem에 대해 반복
+        for (Problem problem : problems) {
+            // 3. 각 Problem의 첫 번째 분석(turn=1)을 조회하여 제목 추출
+            String title = analysisRepository.findFirstByProblem_ProblemIdOrderByTurnAsc(problem.getProblemId())
+                    .map(firstAnalysis -> { // Optional.map을 사용하여 코드를 간결하게 만듦
+                        if (firstAnalysis.getGeminiResponse() != null) {
+                            try {
+                                String cleanedJson = cleanGeminiResponse(firstAnalysis.getGeminiResponse());
+                                Map<String, Object> responseMap = objectMapper.readValue(cleanedJson, new TypeReference<>() {});
+                                return (String) responseMap.getOrDefault("problem_summary", "제목 없음");
+                            } catch (IOException e) {
+                                log.warn("problemId={}의 제목 파싱 실패", problem.getProblemId(), e);
+                                return "제목 파싱 실패";
+                            }
+                        }
+                        return "분석 내용 없음";
+                    })
+                    .orElse("제목 없음"); // 첫 분석이 없는 경우
+
+            // 4. DTO 생성 및 리스트에 추가
+            problemSummaries.add(new ProblemSummaryDto(
+                    problem.getProblemId(),
+                    title,
+                    problem.getCreatedAt()
+            ));
+        }
+
+        return problemSummaries;
     }
 }

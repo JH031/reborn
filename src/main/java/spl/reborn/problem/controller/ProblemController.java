@@ -11,6 +11,8 @@ import spl.reborn.problem.dto.*;
 import spl.reborn.problem.entity.AnalysisOption;
 import spl.reborn.problem.service.ProblemFlowService;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/problems")
@@ -67,5 +69,14 @@ public class ProblemController {
     ) {
         ChatHistoryResponse history = problemFlowService.getChatHistory(userId, problemId);
         return ResponseEntity.ok(history);
+    }
+
+    @Operation(summary = "사용자의 전체 채팅방 목록 조회")
+    @GetMapping
+    public ResponseEntity<List<ProblemSummaryDto>> getProblemList(
+            @RequestParam Long userId
+    ) {
+        List<ProblemSummaryDto> problemList = problemFlowService.getProblemList(userId);
+        return ResponseEntity.ok(problemList);
     }
 }
