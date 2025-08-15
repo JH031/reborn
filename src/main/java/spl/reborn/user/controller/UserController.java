@@ -44,7 +44,9 @@ public class UserController {
                 token,
                 user.getId(),     // PK id
                 user.getName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getGrade(),
+                user.getSchool()
         );
         return ResponseEntity.ok(resp);
     }
