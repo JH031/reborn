@@ -9,10 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import spl.reborn.ai.prompt.AnalysisPrompts;
 import spl.reborn.ai.service.GeminiInlineService;
-import spl.reborn.problem.dto.AnalyzeFirstResponse;
-import spl.reborn.problem.dto.AnalyzeResponse;
-import spl.reborn.problem.dto.SimilarProblemDto;
-import spl.reborn.problem.dto.SimilarProblemResponseDto;
+import spl.reborn.problem.dto.*;
 import spl.reborn.problem.entity.Analysis;
 import spl.reborn.problem.entity.AnalysisOption;
 import spl.reborn.problem.entity.Problem;
@@ -28,6 +25,7 @@ import spl.reborn.problem.support.SubjectConceptRefiner;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -295,4 +293,61 @@ public class ProblemFlowService {
         return cleaned;
     }
 
+    @Transactional(readOnly = true) // 데이터를 조회만 하므로 readOnly = true 설정
+    public ChatHistoryResponse getChatHistory(Long userId, Long problemId) {
+        // 1. 문제 소유자 확인 (보안)
+        Problem problem = problemRepository.findById(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
+
+        if (problem.getUser().getId() != userId) {
+            throw new IllegalStateException("본인의 문제에 대한 채팅 내역만 조회할 수 있습니다.");
+        }
+
+        // 2. 채팅 내역 전체 조회 (turn 오름차순)
+        List<Analysis> analyses = analysisRepository.findByProblem_ProblemIdOrderByTurnAsc(problemId);
+        if (analyses.isEmpty()) {
+            throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
+        }
+
+        // 3. 제목 추출 (turn=1 분석 결과에서)
+        Analysis firstTurn = analyses.get(0);
+        String title = "제목 없음";
+        if (firstTurn.getTurn() == 1 && firstTurn.getGeminiResponse() != null) {
+            try {
+                // ✅ Gemini 응답에서 Markdown 코드 블록을 제거합니다.
+                String cleanedJson = cleanGeminiResponse(firstTurn.getGeminiResponse());
+
+                // ✅ 정제된 JSON 문자열로 파싱을 시도합니다.
+                Map<String, Object> firstResponseMap = objectMapper.readValue(
+                        cleanedJson, new TypeReference<>() {}
+                );
+
+                // "problem_summary" 값을 제목으로 사용
+                title = (String) firstResponseMap.getOrDefault("problem_summary", "제목 없음");
+            } catch (IOException e) {
+                log.warn("turn=1 분석 결과의 JSON 파싱 실패, problemId={}", problemId, e);
+            }
+        }
+
+
+        // 4. Analysis 목록을 ChatTurnDto 목록으로 변환
+        List<ChatTurnDto> chatTurns = new ArrayList<>();
+        for (Analysis analysis : analyses) {
+            // 사용자의 요청이 있는 경우 (turn > 1)
+            if (analysis.getUserRequest() != null && !analysis.getUserRequest().isBlank()) {
+                chatTurns.add(new ChatTurnDto(analysis.getTurn(), "user", analysis.getUserRequest(), null));
+            }
+
+            // 모델(Gemini)의 응답
+            chatTurns.add(new ChatTurnDto(analysis.getTurn(), "model", analysis.getGeminiResponse(), analysis.getImageUrl()));
+        }
+
+        // 5. 최종 응답 DTO 생성 및 반환
+        return new ChatHistoryResponse(
+                problem.getProblemId(),
+                title,
+                problem.getOriginalImageUrl(),
+                chatTurns
+        );
+    }
 }

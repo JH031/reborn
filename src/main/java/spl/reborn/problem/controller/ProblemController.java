@@ -58,4 +58,14 @@ public class ProblemController {
         AnalyzeResponse res = problemFlowService.generateSimilarProblemsFromFullAnalysis(userId, problemId);
         return ResponseEntity.ok(res);
     }
+
+    @Operation(summary = "특정 문제의 전체 채팅 내역 조회")
+    @GetMapping("/{problemId}/history")
+    public ResponseEntity<ChatHistoryResponse> getChatHistory(
+            @PathVariable Long problemId,
+            @RequestParam Long userId
+    ) {
+        ChatHistoryResponse history = problemFlowService.getChatHistory(userId, problemId);
+        return ResponseEntity.ok(history);
+    }
 }
