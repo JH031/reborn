@@ -94,4 +94,15 @@ public class UserService {
                 .receiveReminders(user.isReceiveReminders())
                 .build();
     }
+
+    //아이디 찾기
+    @Transactional(readOnly = true)
+    public String findUseridByNameAndEmail(String name, String email) {
+        String trimmedName = name == null ? null : name.trim();
+        String trimmedEmail = email == null ? null : email.trim();
+
+        return userRepository.findByNameIgnoreCaseAndEmailIgnoreCase(trimmedName, trimmedEmail)
+                .map(User::getUserid)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이름/이메일로 가입된 아이디가 없습니다."));
+    }
 }

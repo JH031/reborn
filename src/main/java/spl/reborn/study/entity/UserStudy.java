@@ -9,6 +9,7 @@ import spl.reborn.user.entity.User;
 import java.time.LocalDate;
 
 @Entity
+@Table(name = "user_study")
 @Getter @Setter
 public class UserStudy {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
