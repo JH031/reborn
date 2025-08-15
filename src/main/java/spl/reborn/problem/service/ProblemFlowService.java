@@ -29,6 +29,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+// ★ 추가: user_study 저장을 위한 import
+import java.time.LocalDate;
+import spl.reborn.study.entity.UserStudy;
+import spl.reborn.study.repository.UserStudyRepository;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,6 +45,9 @@ public class ProblemFlowService {
     private final AnalysisRepository analysisRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+
+    // ★ 추가: user_study 저장용 리포지토리
+    private final UserStudyRepository userStudyRepository;
 
     /** 1) 최초: 이미지+옵션(무조건) */
     @Transactional
@@ -94,6 +102,22 @@ public class ProblemFlowService {
         a.setImageUrl(imageUrl); // ✅ turn=1 이미지도 기록
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
+
+        // ★★★★★ 추가: user_study 자동 저장
+        // 제목 우선순위: mainConcept → subject → "제목 없음"
+        String contentTitle =
+                (problem.getMainConcept() != null && !problem.getMainConcept().isBlank()) ? problem.getMainConcept() :
+                        (problem.getSubject() != null && !problem.getSubject().isBlank()) ? problem.getSubject() :
+                                "제목 없음";
+
+        UserStudy study = new UserStudy();
+        study.setUser(user);
+        study.setContentTitle(contentTitle);
+        study.setStudyDate(LocalDate.now());
+        study.setImageUrl(imageUrl);
+        userStudyRepository.save(study);
+        log.info("[UserStudy] created id={}, user={}, title='{}', date={}, img={}",
+                study.getId(), user.getId(), contentTitle, study.getStudyDate(), study.getImageUrl());
 
         Map<String, Object> display = AnalysisDisplayMapper.toDisplay(geminiRaw, option, objectMapper);
         return AnalyzeFirstResponse.builder()
@@ -206,7 +230,8 @@ public class ProblemFlowService {
 
     @Transactional
     public AnalyzeResponse generateSimilarProblemsFromFullAnalysis(Long userId, Long problemId) {
-        // 1) 소유자 검증
+        // ... (기존 그대로)
+        // 변경 없음
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
@@ -215,13 +240,11 @@ public class ProblemFlowService {
             throw new IllegalStateException("본인 문제에만 유사문제를 생성할 수 있습니다.");
         }
 
-        // 2) 최신 분석 가져오기
         Analysis latest = analysisRepository.findTopByProblem_ProblemIdOrderByTurnDesc(problemId);
         if (latest == null) {
             throw new IllegalStateException("최초 분석이 없습니다. 먼저 analyzeFirst를 실행하세요.");
         }
 
-        // 3) 프롬프트 (전체 분석 내용 + 템플릿)
         String prompt = """
 다음은 원문 문제에 대한 상세 분석(JSON)입니다:
 %s
@@ -229,47 +252,35 @@ public class ProblemFlowService {
 %s
 """.formatted(latest.getGeminiResponse(), AnalysisPrompts.SIMILAR_PROBLEMS_FROM_FULL_ANALYSIS);
 
-        // 4) Gemini 호출
         String rawJson = geminiService.generateFromText(prompt);
-
         String cleanedJson = cleanGeminiResponse(rawJson);
 
         List<SimilarProblemDto> similarProblems;
         try {
-            // 1. 최상위 객체 DTO로 먼저 파싱합니다.
             SimilarProblemResponseDto responseDto = objectMapper.readValue(cleanedJson, SimilarProblemResponseDto.class);
-
-            // 2. 파싱된 객체에서 문제 목록을 꺼냅니다.
             similarProblems = responseDto.getProblems();
-
-            // 혹시 "problems" 키가 없거나 null일 경우를 대비해 방어 코드 추가
-            if (similarProblems == null) {
-                similarProblems = List.of();
-            }
-
+            if (similarProblems == null) similarProblems = List.of();
         } catch (IOException e) {
             log.error("Gemini 유사 문제 JSON 파싱에 실패했습니다: {}", cleanedJson, e);
             similarProblems = List.of();
         }
 
-        // 5) 저장 (turn + 1, option=null, similarOption=SIMILAR_PROBLEMS)
         int nextTurn = latest.getTurn() + 1;
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
-        a.setOption(null); // ✅ 기존 옵션은 사용 안 함
-        a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS); // ✅ 새 필드
+        a.setOption(null);
+        a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS);
         a.setUserRequest("유사문제 2개 생성 (전체 분석 참고)");
         a.setGeminiResponse(rawJson);
         a.setCreatedAt(java.time.LocalDateTime.now());
         analysisRepository.save(a);
 
-        // 6) 응답
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .similarOption(SimilarOption.SIMILAR_PROBLEMS) // ✅ 내려주기
+                .similarOption(SimilarOption.SIMILAR_PROBLEMS)
                 .similarProblems(similarProblems)
                 .build();
     }
@@ -278,24 +289,18 @@ public class ProblemFlowService {
         if (response == null) {
             return null;
         }
-        // 문자열 앞뒤의 공백과 줄바꿈을 모두 제거합니다.
         String cleaned = response.trim();
-
-        // "```json"으로 시작하고 "```"으로 끝나는 경우, 해당 부분을 잘라냅니다.
         if (cleaned.startsWith("```json") && cleaned.endsWith("```")) {
             cleaned = cleaned.substring("```json".length(), cleaned.length() - "```".length()).trim();
-        }
-        // 혹시 "```"으로만 시작하고 끝나는 경우도 대비합니다.
-        else if (cleaned.startsWith("```") && cleaned.endsWith("```")) {
+        } else if (cleaned.startsWith("```") && cleaned.endsWith("```")) {
             cleaned = cleaned.substring("```".length(), cleaned.length() - "```".length()).trim();
         }
-
         return cleaned;
     }
 
-    @Transactional(readOnly = true) // 데이터를 조회만 하므로 readOnly = true 설정
+    @Transactional(readOnly = true)
     public ChatHistoryResponse getChatHistory(Long userId, Long problemId) {
-        // 1. 문제 소유자 확인 (보안)
+        // ... (기존 그대로)
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
@@ -303,57 +308,44 @@ public class ProblemFlowService {
             throw new IllegalStateException("본인의 문제에 대한 채팅 내역만 조회할 수 있습니다.");
         }
 
-        // 2. 채팅 내역 전체 조회 (turn 오름차순)
         List<Analysis> analyses = analysisRepository.findByProblem_ProblemIdOrderByTurnAsc(problemId);
         if (analyses.isEmpty()) {
             throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
         }
 
-        // 3. 제목 추출 (turn=1 분석 결과에서)
         Analysis firstTurn = analyses.get(0);
         String title = "제목 없음";
         if (firstTurn.getTurn() == 1 && firstTurn.getGeminiResponse() != null) {
             try {
-                // ✅ Gemini 응답에서 Markdown 코드 블록을 제거합니다.
                 String cleanedJson = cleanGeminiResponse(firstTurn.getGeminiResponse());
-
-                // ✅ 정제된 JSON 문자열로 파싱을 시도합니다.
-                Map<String, Object> firstResponseMap = objectMapper.readValue(
-                        cleanedJson, new TypeReference<>() {}
-                );
-
-                // "problem_summary" 값을 제목으로 사용
+                Map<String, Object> firstResponseMap = objectMapper.readValue(cleanedJson, new TypeReference<>() {});
                 title = (String) firstResponseMap.getOrDefault("problem_summary", "제목 없음");
             } catch (IOException e) {
                 log.warn("turn=1 분석 결과의 JSON 파싱 실패, problemId={}", problemId, e);
             }
         }
 
-        // 4. Analysis 목록을 ChatTurnDto 목록으로 변환
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
-            // 사용자의 요청이 있는 경우 (turn > 1)
             if (analysis.getUserRequest() != null && !analysis.getUserRequest().isBlank()) {
                 chatTurns.add(new ChatTurnDto(
                         analysis.getTurn(),
                         "user",
                         analysis.getUserRequest(),
                         null,
-                        analysis.getCreatedAt() // ✅ 사용자의 요청 시간 추가
+                        analysis.getCreatedAt()
                 ));
             }
 
-            // 모델(Gemini)의 응답
             chatTurns.add(new ChatTurnDto(
                     analysis.getTurn(),
                     "model",
                     analysis.getGeminiResponse(),
                     analysis.getImageUrl(),
-                    analysis.getCreatedAt() // ✅ 모델의 응답 시간 추가
+                    analysis.getCreatedAt()
             ));
         }
 
-        // 5. 최종 응답 DTO 생성 및 반환
         return new ChatHistoryResponse(
                 problem.getProblemId(),
                 title,
