@@ -20,7 +20,7 @@ public class Problem {
     private User user;
 
     @Column(nullable = false, length = 1024) // S3 URL 대비 넉넉히
-    private String imageUrl;
+    private String originalImageUrl;
 
     @Column(length = 32)   // 예: "수학", "과학" 등
     private String subject;

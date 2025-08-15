@@ -37,6 +37,9 @@ public class Analysis {
     @Column(name = "similar_option")
     private SimilarOption similarOption;
 
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;  // 후속 턴에서 업로드한
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

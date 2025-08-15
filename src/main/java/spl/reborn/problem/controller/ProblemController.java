@@ -33,14 +33,19 @@ public class ProblemController {
         return problemFlowService.analyzeFirst(userId, image, option, userRequest);
     }
 
-    @Operation(summary = "사용자에게 프롬프트 입력 받아서 gemini에게 요청")
-    @PostMapping(value = "/{problemId}/ask", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "사용자에게 프롬프트와 (선택) 이미지를 받아서 gemini에게 요청")
+    @PostMapping(
+            value = "/{problemId}/ask",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public AnalyzeResponse askFollowUp(
-            @RequestParam Long userId,        // TODO: JWT로 대체 권장
+            @RequestParam Long userId,
             @PathVariable Long problemId,
-            @RequestBody FollowUpRequest body  // { "prompt": "..." }
+            @RequestParam String prompt,
+            @RequestPart(name = "image", required = false) MultipartFile image // 파일 파트
     ) {
-        return problemFlowService.analyzeFollowUp(userId, problemId, body.getPrompt());
+        return problemFlowService.analyzeFollowUp(userId, problemId, prompt, image);
     }
 
     @Operation(summary = "유사한 문제 요청")

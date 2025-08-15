@@ -62,7 +62,7 @@ public class ProblemFlowService {
 
         Problem problem = new Problem();
         problem.setUser(user);
-        problem.setImageUrl(imageUrl);
+        problem.setOriginalImageUrl(imageUrl); // ✅ 대표/최초 이미지
         problem.setCreatedAt(LocalDateTime.now());
         // subject, mainConcept은 나중에 응답 JSON에서 추출하여 업데이트
         problemRepository.save(problem);
@@ -82,13 +82,14 @@ public class ProblemFlowService {
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
         enrichProblem(problem, geminiRaw);
 
-        // 5) Analysis 저장 (turn=1)
+        // 5) Analysis 저장 (turn=1) — 히스토리 일관성 위해 imageUrl도 기록
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(1);
         a.setOption(option);
         a.setUserRequest(null); // 최초 턴은 사용자가 프롬프트를 보내지 않음(요구사항)
         a.setGeminiResponse(geminiRaw);
+        a.setImageUrl(imageUrl); // ✅ turn=1 이미지도 기록
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
@@ -103,9 +104,16 @@ public class ProblemFlowService {
                 .build();
     }
 
-    /** 2) 후속 턴: 사용자 프롬프트만 */
+    /** 2-1) 후속 턴: 사용자 프롬프트만 (호환용) */
     @Transactional
     public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt) {
+        // 이미지 없이 호출하는 기존 코드 호환을 위해 null로 위임
+        return analyzeFollowUp(userId, problemId, userPrompt, null);
+    }
+
+    /** 2-2) 후속 턴: 사용자 프롬프트 + (선택) 이미지 */
+    @Transactional
+    public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt, MultipartFile image) {
         if (userPrompt == null || userPrompt.isBlank()) {
             throw new IllegalArgumentException("프롬프트가 필요합니다.");
         }
@@ -124,27 +132,41 @@ public class ProblemFlowService {
         }
         int nextTurn = latest.getTurn() + 1;
 
-        // ✅ 후속 턴은 "사용자 프롬프트를 그대로" 모델에 전달하고, 받은 원문을 그대로 반환
-        String geminiRaw = geminiService.generateFromText(userPrompt);
+        String geminiRaw;
+        String imageUrlForThisTurn = null;
 
-        // DB 저장 (항상 원문 저장, option=null)
+        // ✅ 이미지가 있으면 업로드 후 멀티모달 호출, 없으면 텍스트-only
+        if (image != null && !image.isEmpty()) {
+            try {
+                imageUrlForThisTurn = s3Service.uploadFile(image);
+            } catch (IOException e) {
+                throw new RuntimeException("이미지 업로드 실패", e);
+            }
+            geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, userPrompt);
+        } else {
+            geminiRaw = geminiService.generateFromText(userPrompt);
+        }
+
+        // DB 저장 (항상 원문 저장, option=null, 이번 턴 이미지 URL도 저장)
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
         a.setOption(null);
         a.setUserRequest(userPrompt);
         a.setGeminiResponse(geminiRaw);
+        a.setImageUrl(imageUrlForThisTurn); // ✅ 이번 턴 업로드 이미지(없으면 null)
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
         // 후속 턴은 원문 Q&A 성격이므로 Problem(subject/mainConcept) 보강은 스킵
-        // (원하면 enrichProblem(problem, geminiRaw) 호출로 유지 가능)
+        // (원하면 enrichProblem(problem, geminiRaw) 호출 가능)
 
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
                 .message(geminiRaw) // ✅ 프론트로 원문 그대로
+                // .imageUrl(imageUrlForThisTurn) // DTO에 필드가 있다면 내려도 됨
                 .build();
     }
 
