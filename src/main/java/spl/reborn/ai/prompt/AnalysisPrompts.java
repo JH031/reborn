@@ -30,22 +30,6 @@ public final class AnalysisPrompts {
 """ + safe + "\n";
     }
 
-    public static String followUp(String recentSummaries, String userPrompt) {
-        return """
-역할: 너는 이전 분석 결과를 참고하여 학생의 추가 요청에 답하는 과외 선생님이다.
-
-규칙:
-- 가능하면 이전의 JSON 스키마를 유지해 답하되, 사용자의 요청이 자유형 설명/질문이면 'feedback'을 중심으로 간결한 한국어 설명을 제공해도 된다.
-- 새로운 정정/추가 풀이가 있으면 반영하라.
-- 수식은 간단한 LaTeX 또는 평문.
-
-[이전 분석 요약(최신순 1~2개)]
-""" + recentSummaries + """
-
-[사용자 추가 요청]
-""" + userPrompt + "\n";
-    }
-
     public static final String SIMILAR_PROBLEMS_FROM_FULL_ANALYSIS = """
 역할: 너는 초/중/고 문제 출제 전문가다.
 입력으로 원문 문제에 대한 상세 분석 내용(JSON 형식)을 받는다.

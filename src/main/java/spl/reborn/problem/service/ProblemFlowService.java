@@ -130,24 +130,24 @@ public class ProblemFlowService {
 
         int nextTurn = latest.getTurn() + 1;
 
+        // ✅ 사용자의 원본 프롬프트에 한국어 답변을 요청하는 구문을 추가합니다.
+        String finalPrompt = userPrompt + "\n\n(답변은 반드시 한국어로 작성해주세요.)";
+
         String geminiRaw;
         String imageUrlForThisTurn = null;
 
-        // ✅ 이미지가 오면: 업로드 → 이미지+프롬프트 멀티모달 호출
         if (image != null && !image.isEmpty()) {
             try {
                 imageUrlForThisTurn = s3Service.uploadFile(image);
             } catch (IOException e) {
                 throw new RuntimeException("이미지 업로드 실패", e);
             }
-            // ✅ 후속 턴이므로 기본 프롬프트를 붙이지 않도록 false를 전달합니다.
-            geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, userPrompt, false);
+            // ✅ 수정된 finalPrompt를 전달합니다.
+            geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, finalPrompt, false);
         } else {
-            // ✅ 이미지가 없으면: 텍스트만 호출
-            // ✅ 후속 턴이므로 기본 프롬프트를 붙이지 않도록 false를 전달합니다.
-            geminiRaw = geminiService.generateFromText(userPrompt, false);
+            // ✅ 수정된 finalPrompt를 전달합니다.
+            geminiRaw = geminiService.generateFromText(finalPrompt, false);
         }
-
 
         // DB 저장 (항상 원문 저장, 이번 턴 이미지 URL도 저장)
         Analysis a = new Analysis();
