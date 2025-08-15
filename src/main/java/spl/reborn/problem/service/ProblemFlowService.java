@@ -22,9 +22,14 @@ import spl.reborn.user.repository.UserRepository;
 import spl.reborn.problem.support.SubjectConceptExtractor;
 import spl.reborn.problem.support.SubjectConceptRefiner;
 
+// ★ UserStudy 관련
+import spl.reborn.study.entity.UserStudy;
+import spl.reborn.study.repository.UserStudyRepository;
+
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.ZoneId;
 import java.util.Map;
 
 @Slf4j
@@ -38,6 +43,10 @@ public class ProblemFlowService {
     private final AnalysisRepository analysisRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+
+    private final UserStudyRepository userStudyRepository;
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     /** 1) 최초: 이미지+옵션(무조건) */
     @Transactional
@@ -74,7 +83,7 @@ public class ProblemFlowService {
             case FIND_MY_ERROR -> AnalysisPrompts.findMyErrorHint(userRequestOptional);
         };
 
-        String prompt = hint; // GeminiInlineService 내부에 기본 시스템 프롬프트(DEFAULT_ANALYSIS_PROMPT)가 존재
+        String prompt = hint; // GeminiInlineService 내부 기본 프롬프트 존재
 
         // 3) Gemini 호출 (이미지 URL 인라인)
         String geminiRaw = geminiService.generateFromImageUrl(imageUrl, prompt);
@@ -82,12 +91,24 @@ public class ProblemFlowService {
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
         enrichProblem(problem, geminiRaw);
 
+        // ★ 4.5) UserStudy 생성: contentTitle = "subject_mainConcept", imageUrl 포함
+        String subject = safe(problem.getSubject());
+        String concept = safe(problem.getMainConcept());
+        String contentTitle = buildContentTitle(subject, concept);
+
+        UserStudy study = new UserStudy();
+        study.setUser(user);
+        study.setContentTitle(contentTitle);
+        study.setStudyDate(LocalDate.now(KST));
+        study.setImageUrl(problem.getImageUrl()); // ★ Problem의 이미지 URL 저장
+        userStudyRepository.save(study);
+
         // 5) Analysis 저장 (turn=1)
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(1);
         a.setOption(option);
-        a.setUserRequest(null); // 최초 턴은 사용자가 프롬프트를 보내지 않음(요구사항)
+        a.setUserRequest(null);
         a.setGeminiResponse(geminiRaw);
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
@@ -124,7 +145,7 @@ public class ProblemFlowService {
         }
         int nextTurn = latest.getTurn() + 1;
 
-        // ✅ 후속 턴은 "사용자 프롬프트를 그대로" 모델에 전달하고, 받은 원문을 그대로 반환
+        // 후속 턴은 사용자 프롬프트 원문 전달
         String geminiRaw = geminiService.generateFromText(userPrompt);
 
         // DB 저장 (항상 원문 저장, option=null)
@@ -137,22 +158,19 @@ public class ProblemFlowService {
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
-        // 후속 턴은 원문 Q&A 성격이므로 Problem(subject/mainConcept) 보강은 스킵
-        // (원하면 enrichProblem(problem, geminiRaw) 호출로 유지 가능)
-
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .message(geminiRaw) // ✅ 프론트로 원문 그대로
+                .message(geminiRaw)
                 .build();
     }
 
     /** JSON/문장에서 subject/mainConcept를 추출해 Problem에 채움 */
     private void enrichProblem(Problem p, String geminiRaw) {
-        SubjectConceptExtractor.Result r = SubjectConceptExtractor.extract(geminiRaw, objectMapper);
+        var r = SubjectConceptExtractor.extract(geminiRaw, objectMapper);
 
-        // 1차 시도 실패면 가볍게 재요청해서 JSON만 받기
+        // 1차 실패 시 보정 재시도
         if (r == null) {
             try {
                 String refined = SubjectConceptRefiner.refine(geminiService, geminiRaw);
@@ -164,13 +182,10 @@ public class ProblemFlowService {
 
         boolean changed = false;
 
-        // subject: 비어있으면 채우고, 다른 값이면 최신으로 갱신할지 정책 선택
         if (isBlank(p.getSubject()) && notBlank(r.subject())) {
             p.setSubject(r.subject());
             changed = true;
         }
-
-        // mainConcept도 동일 정책
         if (isBlank(p.getMainConcept()) && notBlank(r.mainConcept())) {
             p.setMainConcept(r.mainConcept());
             changed = true;
@@ -181,12 +196,24 @@ public class ProblemFlowService {
         }
     }
 
+    // ---- helpers ------------------------------------------------------------
+
     private static boolean isBlank(String s){ return s == null || s.isBlank(); }
     private static boolean notBlank(String s){ return s != null && !s.isBlank(); }
+    private static String safe(String s){ return s == null ? "" : s.trim(); }
+
+    /** subject/mainConcept를 '_'로 연결. 둘 다 비면 "문제" 반환 */
+    private static String buildContentTitle(String subject, String concept) {
+        boolean hasSubj = notBlank(subject);
+        boolean hasConcept = notBlank(concept);
+        if (hasSubj && hasConcept) return subject + "_" + concept;
+        if (hasSubj) return subject;
+        if (hasConcept) return concept;
+        return "문제";
+    }
 
     private String trimForContext(String s) {
         if (s == null) return "";
-        // 최근 컨텍스트로 1500자 정도만 사용 (토큰 절약)
         return s.length() > 1500 ? s.substring(0, 1500) + " …(truncated)" : s;
     }
 }
