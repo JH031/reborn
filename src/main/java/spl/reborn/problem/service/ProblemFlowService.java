@@ -1,5 +1,6 @@
 package spl.reborn.problem.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,8 @@ import spl.reborn.ai.prompt.AnalysisPrompts;
 import spl.reborn.ai.service.GeminiInlineService;
 import spl.reborn.problem.dto.AnalyzeFirstResponse;
 import spl.reborn.problem.dto.AnalyzeResponse;
+import spl.reborn.problem.dto.SimilarProblemDto;
+import spl.reborn.problem.dto.SimilarProblemResponseDto;
 import spl.reborn.problem.entity.Analysis;
 import spl.reborn.problem.entity.AnalysisOption;
 import spl.reborn.problem.entity.Problem;
@@ -25,6 +28,7 @@ import spl.reborn.problem.support.SubjectConceptRefiner;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -230,6 +234,26 @@ public class ProblemFlowService {
         // 4) Gemini 호출
         String rawJson = geminiService.generateFromText(prompt);
 
+        String cleanedJson = cleanGeminiResponse(rawJson);
+
+        List<SimilarProblemDto> similarProblems;
+        try {
+            // 1. 최상위 객체 DTO로 먼저 파싱합니다.
+            SimilarProblemResponseDto responseDto = objectMapper.readValue(cleanedJson, SimilarProblemResponseDto.class);
+
+            // 2. 파싱된 객체에서 문제 목록을 꺼냅니다.
+            similarProblems = responseDto.getProblems();
+
+            // 혹시 "problems" 키가 없거나 null일 경우를 대비해 방어 코드 추가
+            if (similarProblems == null) {
+                similarProblems = List.of();
+            }
+
+        } catch (IOException e) {
+            log.error("Gemini 유사 문제 JSON 파싱에 실패했습니다: {}", cleanedJson, e);
+            similarProblems = List.of();
+        }
+
         // 5) 저장 (turn + 1, option=null, similarOption=SIMILAR_PROBLEMS)
         int nextTurn = latest.getTurn() + 1;
         Analysis a = new Analysis();
@@ -248,8 +272,27 @@ public class ProblemFlowService {
                 .turn(nextTurn)
                 .option(null)
                 .similarOption(SimilarOption.SIMILAR_PROBLEMS) // ✅ 내려주기
-                .message(rawJson)
+                .similarProblems(similarProblems)
                 .build();
+    }
+
+    private String cleanGeminiResponse(String response) {
+        if (response == null) {
+            return null;
+        }
+        // 문자열 앞뒤의 공백과 줄바꿈을 모두 제거합니다.
+        String cleaned = response.trim();
+
+        // "```json"으로 시작하고 "```"으로 끝나는 경우, 해당 부분을 잘라냅니다.
+        if (cleaned.startsWith("```json") && cleaned.endsWith("```")) {
+            cleaned = cleaned.substring("```json".length(), cleaned.length() - "```".length()).trim();
+        }
+        // 혹시 "```"으로만 시작하고 끝나는 경우도 대비합니다.
+        else if (cleaned.startsWith("```") && cleaned.endsWith("```")) {
+            cleaned = cleaned.substring("```".length(), cleaned.length() - "```".length()).trim();
+        }
+
+        return cleaned;
     }
 
 }
