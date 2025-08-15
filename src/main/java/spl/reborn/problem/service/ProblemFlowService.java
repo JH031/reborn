@@ -329,17 +329,28 @@ public class ProblemFlowService {
             }
         }
 
-
         // 4. Analysis 목록을 ChatTurnDto 목록으로 변환
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
             // 사용자의 요청이 있는 경우 (turn > 1)
             if (analysis.getUserRequest() != null && !analysis.getUserRequest().isBlank()) {
-                chatTurns.add(new ChatTurnDto(analysis.getTurn(), "user", analysis.getUserRequest(), null));
+                chatTurns.add(new ChatTurnDto(
+                        analysis.getTurn(),
+                        "user",
+                        analysis.getUserRequest(),
+                        null,
+                        analysis.getCreatedAt() // ✅ 사용자의 요청 시간 추가
+                ));
             }
 
             // 모델(Gemini)의 응답
-            chatTurns.add(new ChatTurnDto(analysis.getTurn(), "model", analysis.getGeminiResponse(), analysis.getImageUrl()));
+            chatTurns.add(new ChatTurnDto(
+                    analysis.getTurn(),
+                    "model",
+                    analysis.getGeminiResponse(),
+                    analysis.getImageUrl(),
+                    analysis.getCreatedAt() // ✅ 모델의 응답 시간 추가
+            ));
         }
 
         // 5. 최종 응답 DTO 생성 및 반환
