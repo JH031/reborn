@@ -18,5 +18,6 @@ public class UserStudy {
     private User user;                // 권장: 연관관계 사용
 
     private String contentTitle;
+
     private LocalDate studyDate;
 }

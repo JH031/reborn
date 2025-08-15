@@ -101,13 +101,19 @@ public class ReminderService {
 
     /**
      * 지금 보낼 알림을 찾아 전송. 경합/중복 호출이어도 한 번만 나가도록 방어
+     *
+     * ※ 중요: readOnly 트랜잭션으로 열어서 LAZY 연관(Reminder.user) 초기화 보장
+     *   (레포에서 user를 fetch join하면 더 견고해짐)
      */
+    @Transactional
     public void sendDueReminders() {
         LocalDateTime now = LocalDateTime.now(KST);
+
+        // 권장: findDue(now)가 user를 fetch join 해서 가져오도록 구현
         List<Reminder> dueList = reminderRepository.findDue(now);
 
         for (Reminder r : dueList) {
-            User u = r.getUser();
+            User u = r.getUser(); // 트랜잭션 안에서 안전하게 초기화됨
 
             // 수신 동의 꺼져 있으면 메일 없이 완료 처리
             if (!u.isReceiveReminders()) {

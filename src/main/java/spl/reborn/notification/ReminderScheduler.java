@@ -10,7 +10,7 @@ public class ReminderScheduler {
 
     private final ReminderService reminderService;
 
-    @Scheduled(cron = "0 */10 * * * *") //
+    @Scheduled(cron = "0 * * * * *") //
     public void run() {
         reminderService.sendDueReminders();
     }

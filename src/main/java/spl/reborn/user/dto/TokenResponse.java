@@ -6,5 +6,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class TokenResponse {
-    private String token;
+    private String token;   // JWT 토큰
+    private long id;        // User PK (auto increment id)
+    private String name;
+    private String email;
 }

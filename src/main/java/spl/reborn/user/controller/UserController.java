@@ -28,18 +28,25 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
         User user = userService.findByUserid(request.getUserid());
 
         System.out.println("입력된 비밀번호: " + request.getPassword());
         System.out.println("DB 저장된 비밀번호: " + user.getPassword());
 
         if (!request.getPassword().equals(user.getPassword())) {
-            return ResponseEntity.status(401).body("비밀번호가 일치하지 않습니다.");
+            return ResponseEntity.status(401).build();
         }
 
         String token = jwtUtil.generateToken(user.getUserid());
-        return ResponseEntity.ok(new TokenResponse(token));
+
+        TokenResponse resp = new TokenResponse(
+                token,
+                user.getId(),     // PK id
+                user.getName(),
+                user.getEmail()
+        );
+        return ResponseEntity.ok(resp);
     }
 
     @PatchMapping("/{userId}/profile")
