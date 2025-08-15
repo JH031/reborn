@@ -51,12 +51,10 @@ public class GeminiInlineService {
 - problem_summary: 문제를 짧게 요약
 - given: 문제에서 주어진 정보나 조건
 - asked: 문제에서 구하는 것 또는 요구사항
-- 풀이가 있을 때:
-  - is_correct: 정답 여부 (true/false/unknown)
-  - error_analysis: 어디서 왜 틀렸는지 설명(산술/개념/논리/표현/단위 등 유형 표시)
+  - is_correct: 정답이 있다면 정답 여부 (true/false/unknown)
+  - error_analysis: 풀이 과정이 있다면 어디서 왜 틀렸는지 설명(산술/개념/논리/표현/단위 등 유형 표시)
   - correct_answer: 올바른 최종 답
   - step_by_step_explain: 올바른 풀이 과정을 간단하게
-- 풀이가 없을 때:
   - needed_concepts: 풀기 위해 필요한 개념 목록
   - how_to_approach: 접근 절차(문제 분석 → 개념 적용 → 해결) 요약
 - feedback: 학생에게 줄 짧고 친절한 피드백 (2문장 이내)

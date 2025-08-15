@@ -12,9 +12,11 @@ public final class AnalysisPrompts {
 
     public static final String FULL_SOLUTION_HINT = """
 추가 지시:
-- 지금은 '전체 풀이'를 요청한다.
-- 'step_by_step_explain'을 구체적으로 작성하고 정답을 명확히 제시하라.
-""";
+사용자의 요청은 'FULL_SOLUTION' (전체 풀이) 입니다.
+    당신이 이미지에서 사용자의 풀이 과정을 찾았는지 여부('has_solution' 값)와 관계없이, 반드시 'step_by_step_explain' 필드에 상세하고 친절한 단계별 풀이 과정을 작성하여 제공해야 합니다.
+    'how_to_approach' 필드에는 간단한 접근법 요약을, 'step_by_step_explain' 필드에는 완전한 풀이를 담아주세요.
+    """;
+
 
     public static String findMyErrorHint(String userSolution) {
         String safe = userSolution == null ? "" : userSolution;
