@@ -20,4 +20,8 @@ public class UserStudy {
     private String contentTitle;
 
     private LocalDate studyDate;
+
+    // ★ Problem의 이미지 URL을 저장
+    @Column(nullable = false, length = 1024)
+    private String imageUrl;
 }

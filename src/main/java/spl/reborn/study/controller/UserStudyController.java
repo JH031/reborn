@@ -1,6 +1,7 @@
 // spl.reborn.study.controller.UserStudyController
 package spl.reborn.study.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,6 +36,10 @@ public class UserStudyController {
 
     /** 이해도 체크: UNDERSTOOD / NOT_UNDERSTOOD (JWT 사용자) */
     @PostMapping("/{studyId}/review")
+    @Operation(
+            summary = "이해도 체크",
+            description = "지정된 복습 주기(1/4/7/14/30일)에서 UNDERSTOOD 또는 NOT_UNDERSTOOD 결과를 기록합니다."
+    )
     public ResponseEntity<Void> review(@PathVariable long studyId,
                                        @RequestParam int stageDay,                 // 1/4/7/14/30
                                        @RequestParam StudyCheck.Result result) {   // UNDERSTOOD or NOT_UNDERSTOOD

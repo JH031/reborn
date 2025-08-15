@@ -13,7 +13,8 @@ public class ReviewDtos {
             Long userStudyId,
             String contentTitle,
             int stageIndex,
-            LocalDate nextReviewDate
+            LocalDate nextReviewDate,
+            String imageUrl          // ★ 추가: 문제 이미지 URL
     ) {
         public static DueReviewDto from(ReviewProgress rp) {
             return new DueReviewDto(
@@ -21,7 +22,8 @@ public class ReviewDtos {
                     rp.getUserStudy().getId(),
                     rp.getUserStudy().getContentTitle(),
                     rp.getStageIndex(),
-                    rp.getNextReviewDate()
+                    rp.getNextReviewDate(),
+                    rp.getUserStudy().getImageUrl()   // ★ 매핑 추가
             );
         }
     }
