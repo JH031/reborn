@@ -39,10 +39,11 @@ public class StudyCheckService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
+
         UserStudy study = userStudyRepository.findById(userStudyId)
                 .orElseThrow(() -> new IllegalArgumentException("study not found: " + userStudyId));
 
-        // 1) 체크 저장 (같은 user+study+stageDay는 유니크 제약을 권장)
+        // 1) 이해도 체크 저장 (user+study+stageDay 유니크 권장)
         StudyCheck sc = new StudyCheck();
         sc.setUser(user);
         sc.setUserStudy(study);
@@ -52,14 +53,14 @@ public class StudyCheckService {
 
         // 2) 결과별 처리
         if (result == StudyCheck.Result.NOT_UNDERSTOOD) {
-            // (a) 기존 이해도 기록 전부 삭제(리셋)
+            // (a) 같은 학습의 기존 이해도 기록 리셋
             studyCheckRepository.deleteByUser_IdAndUserStudy_Id(userId, userStudyId);
 
-            // (b) 해당 학습의 아직 안 보낸 리마인더 전부 삭제(중복 방지)
+            // (b) 해당 학습의 아직 안 보낸 리마인더 정리(중복 방지)
             reminderRepository.deleteByUser_IdAndContentIdAndSentFalse(userId, userStudyId);
 
-            // (c) "오늘"을 시작일로 1/4/7/14/30 재예약
-            LocalDate startDate = LocalDate.now(KST); // ★ plusDays(1) 제거
+            // (c) 오늘을 시작일로 1/4/7/14/30 재예약 (ReminderService 내부는 업서트 사용)
+            LocalDate startDate = LocalDate.now(KST);
             reminderService.scheduleOffsetsFromDate(
                     userId,
                     study.getId(),
@@ -67,7 +68,7 @@ public class StudyCheckService {
                     startDate
             );
         }
-        // UNDERSTOOD면 재스케줄 없음(누적 체크만 유지)
+        // UNDERSTOOD: 재예약 없음(체크만 누적)
     }
 
     @Transactional(readOnly = true)
