@@ -77,7 +77,7 @@ public class ProblemFlowService {
         String prompt = hint; // GeminiInlineService 내부에 기본 시스템 프롬프트(DEFAULT_ANALYSIS_PROMPT)가 존재
 
         // 3) Gemini 호출 (이미지 URL 인라인)
-        String geminiRaw = geminiService.generateFromImageUrl(imageUrl, prompt);
+        String geminiRaw = geminiService.generateFromImageUrl(imageUrl, prompt, true);
 
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
         enrichProblem(problem, geminiRaw);
@@ -138,11 +138,14 @@ public class ProblemFlowService {
             } catch (IOException e) {
                 throw new RuntimeException("이미지 업로드 실패", e);
             }
-            geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, userPrompt);
+            // ✅ 후속 턴이므로 기본 프롬프트를 붙이지 않도록 false를 전달합니다.
+            geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, userPrompt, false);
         } else {
             // ✅ 이미지가 없으면: 텍스트만 호출
-            geminiRaw = geminiService.generateFromText(userPrompt);
+            // ✅ 후속 턴이므로 기본 프롬프트를 붙이지 않도록 false를 전달합니다.
+            geminiRaw = geminiService.generateFromText(userPrompt, false);
         }
+
 
         // DB 저장 (항상 원문 저장, 이번 턴 이미지 URL도 저장)
         Analysis a = new Analysis();

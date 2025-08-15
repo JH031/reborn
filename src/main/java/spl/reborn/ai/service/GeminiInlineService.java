@@ -93,7 +93,11 @@ public class GeminiInlineService {
 
     /** 퍼블릭/프리사인드 S3 URL을 인라인(Base64)로 변환해 Gemini 호출 */
     public String generateFromImageUrl(String imageUrl, String prompt) {
-        // 1) 이미지 바이트 다운로드
+        return generateFromImageUrl(imageUrl, prompt, true);
+    }
+
+    /** 새 메서드: 기본 프롬프트 prepend 여부를 호출자가 제어 */
+    public String generateFromImageUrl(String imageUrl, String prompt, boolean prependDefault) {
         byte[] bytes = http.get()
                 .uri(imageUrl)
                 .retrieve()
@@ -106,21 +110,20 @@ public class GeminiInlineService {
         if (bytes == null || bytes.length == 0) {
             throw new IllegalStateException("이미지 다운로드 실패 또는 빈 파일 (url=" + imageUrl + ")");
         }
-        System.out.println("[GeminiInline] downloaded bytes = " + bytes.length);
 
-        // 2) MIME 추정
         String mime = guessMime(bytes, imageUrl);
-        System.out.println("[GeminiInline] mime = " + mime);
+        String b64  = java.util.Base64.getEncoder().encodeToString(bytes);
 
-        // 3) Base64 인코딩 (크기 로깅)
-        String b64 = Base64.getEncoder().encodeToString(bytes);
-        System.out.println("[GeminiInline] base64 length = " + b64.length());
+        String instruction;
+        if (prependDefault) {
+            instruction = (prompt == null || prompt.isBlank())
+                    ? DEFAULT_ANALYSIS_PROMPT
+                    : DEFAULT_ANALYSIS_PROMPT + "\n\n" + prompt;
+        } else {
+            // 후속턴(이미지 포함)에서 기본 프롬프트를 붙이지 않음
+            instruction = (prompt == null) ? "" : prompt;
+        }
 
-        String instruction = (prompt == null || prompt.isBlank())
-                ? DEFAULT_ANALYSIS_PROMPT
-                : DEFAULT_ANALYSIS_PROMPT + "\n\n" + prompt;
-
-        // 4) 요청 바디 구성
         Map<String, Object> body = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(
@@ -133,10 +136,9 @@ public class GeminiInlineService {
                 )
         );
 
-        // 5) Gemini 호출
         Map<?, ?> res = http.post()
                 .uri(apiUrl + "?key=" + apiKey)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(s -> s.is4xxClientError() || s.is5xxServerError(),
@@ -145,7 +147,6 @@ public class GeminiInlineService {
                 .bodyToMono(Map.class)
                 .block();
 
-        // 6) 텍스트 추출 (파싱 실패 시 원문 반환)
         return extractText(res);
     }
 
@@ -179,10 +180,23 @@ public class GeminiInlineService {
     }
 
     public String generateFromText(String prompt) {
+        return generateFromText(prompt, false); // ✅ 기본값 false로 변경
+    }
+
+    public String generateFromText(String prompt, boolean prependDefault) {
+        String instruction;
+        if (prependDefault) {
+            instruction = (prompt == null || prompt.isBlank())
+                    ? DEFAULT_ANALYSIS_PROMPT
+                    : DEFAULT_ANALYSIS_PROMPT + "\n\n" + prompt;
+        } else {
+            instruction = (prompt == null) ? "" : prompt;
+        }
+
         Map<String, Object> body = Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(
-                                Map.of("text", prompt)
+                                Map.of("text", instruction)
                         ))
                 )
         );

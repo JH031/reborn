@@ -33,6 +33,7 @@ public class ProblemController {
         return problemFlowService.analyzeFirst(userId, image, option, userRequest);
     }
 
+
     @Operation(summary = "사용자에게 프롬프트와 (선택) 이미지를 받아서 gemini에게 요청")
     @PostMapping(
             value = "/{problemId}/ask",
