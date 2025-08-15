@@ -313,6 +313,7 @@ public class ProblemFlowService {
             throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
         }
 
+
         Analysis firstTurn = analyses.get(0);
         String title = "제목 없음";
         if (firstTurn.getTurn() == 1 && firstTurn.getGeminiResponse() != null) {
@@ -324,6 +325,7 @@ public class ProblemFlowService {
                 log.warn("turn=1 분석 결과의 JSON 파싱 실패, problemId={}", problemId, e);
             }
         }
+
 
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
@@ -348,9 +350,45 @@ public class ProblemFlowService {
 
         return new ChatHistoryResponse(
                 problem.getProblemId(),
-                title,
                 problem.getOriginalImageUrl(),
                 chatTurns
         );
+
+    }
+    @Transactional(readOnly = true)
+    public List<ProblemSummaryDto> getProblemList(Long userId) {
+        // 1. 해당 사용자의 모든 Problem을 최신순으로 조회
+        List<Problem> problems = problemRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+
+        List<ProblemSummaryDto> problemSummaries = new ArrayList<>();
+
+        // 2. 각 Problem에 대해 반복
+        for (Problem problem : problems) {
+            // 3. 각 Problem의 첫 번째 분석(turn=1)을 조회하여 제목 추출
+            String title = analysisRepository.findFirstByProblem_ProblemIdOrderByTurnAsc(problem.getProblemId())
+                    .map(firstAnalysis -> { // Optional.map을 사용하여 코드를 간결하게 만듦
+                        if (firstAnalysis.getGeminiResponse() != null) {
+                            try {
+                                String cleanedJson = cleanGeminiResponse(firstAnalysis.getGeminiResponse());
+                                Map<String, Object> responseMap = objectMapper.readValue(cleanedJson, new TypeReference<>() {});
+                                return (String) responseMap.getOrDefault("problem_summary", "제목 없음");
+                            } catch (IOException e) {
+                                log.warn("problemId={}의 제목 파싱 실패", problem.getProblemId(), e);
+                                return "제목 파싱 실패";
+                            }
+                        }
+                        return "분석 내용 없음";
+                    })
+                    .orElse("제목 없음"); // 첫 분석이 없는 경우
+
+            // 4. DTO 생성 및 리스트에 추가
+            problemSummaries.add(new ProblemSummaryDto(
+                    problem.getProblemId(),
+                    title,
+                    problem.getCreatedAt()
+            ));
+        }
+
+        return problemSummaries;
     }
 }

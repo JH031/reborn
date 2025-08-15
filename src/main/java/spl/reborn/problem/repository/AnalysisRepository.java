@@ -15,5 +15,5 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
 
     // ✅ problemId를 기준으로 모든 Analysis를 turn 번호 오름차순으로 조회
     List<Analysis> findByProblem_ProblemIdOrderByTurnAsc(Long problemId);
-
+    Optional<Analysis> findFirstByProblem_ProblemIdOrderByTurnAsc(Long problemId);
 }
