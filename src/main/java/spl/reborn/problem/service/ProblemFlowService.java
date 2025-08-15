@@ -23,8 +23,14 @@ import spl.reborn.user.repository.UserRepository;
 import spl.reborn.problem.support.SubjectConceptExtractor;
 import spl.reborn.problem.support.SubjectConceptRefiner;
 
+// ★ UserStudy 자동 생성용
+import spl.reborn.study.entity.UserStudy;
+import spl.reborn.study.repository.UserStudyRepository;
+
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 
 @Slf4j
@@ -38,6 +44,12 @@ public class ProblemFlowService {
     private final AnalysisRepository analysisRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+
+    // ★ 추가
+    private final UserStudyRepository userStudyRepository;
+
+    // ★ 한국시간 기준
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     /** 1) 최초: 이미지+옵션(무조건) */
     @Transactional
@@ -74,13 +86,25 @@ public class ProblemFlowService {
             case FIND_MY_ERROR -> AnalysisPrompts.findMyErrorHint(userRequestOptional);
         };
 
-        String prompt = hint; // GeminiInlineService 내부에 기본 시스템 프롬프트(DEFAULT_ANALYSIS_PROMPT)가 존재
+        String prompt = hint; // GeminiInlineService 내부에 기본 시스템 프롬프트 존재
 
         // 3) Gemini 호출 (이미지 URL 인라인)
         String geminiRaw = geminiService.generateFromImageUrl(imageUrl, prompt);
 
         // 4) Problem 보강(subject/mainConcept 추출 시도 - 실패해도 무시)
         enrichProblem(problem, geminiRaw);
+
+        // ★ 4.5) UserStudy 자동 생성: contentTitle = "subject_mainConcept", imageUrl = originalImageUrl
+        String subject = safe(problem.getSubject());
+        String concept = safe(problem.getMainConcept());
+        String contentTitle = buildContentTitle(subject, concept);
+
+        UserStudy study = new UserStudy();
+        study.setUser(user);
+        study.setContentTitle(contentTitle);
+        study.setStudyDate(LocalDate.now(KST));
+        study.setImageUrl(problem.getOriginalImageUrl()); // ✅ 마이페이지에 썸네일로 이용
+        userStudyRepository.save(study);
 
         // 5) Analysis 저장 (turn=1) — 히스토리 일관성 위해 imageUrl도 기록
         Analysis a = new Analysis();
@@ -159,14 +183,12 @@ public class ProblemFlowService {
         analysisRepository.save(a);
 
         // 후속 턴은 원문 Q&A 성격이므로 Problem(subject/mainConcept) 보강은 스킵
-        // (원하면 enrichProblem(problem, geminiRaw) 호출 가능)
 
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
                 .message(geminiRaw) // ✅ 프론트로 원문 그대로
-                // .imageUrl(imageUrlForThisTurn) // DTO에 필드가 있다면 내려도 됨
                 .build();
     }
 
@@ -186,13 +208,13 @@ public class ProblemFlowService {
 
         boolean changed = false;
 
-        // subject: 비어있으면 채우고, 다른 값이면 최신으로 갱신할지 정책 선택
+        // subject: 비어있으면 채움
         if (isBlank(p.getSubject()) && notBlank(r.subject())) {
             p.setSubject(r.subject());
             changed = true;
         }
 
-        // mainConcept도 동일 정책
+        // mainConcept: 비어있으면 채움
         if (isBlank(p.getMainConcept()) && notBlank(r.mainConcept())) {
             p.setMainConcept(r.mainConcept());
             changed = true;
@@ -205,6 +227,20 @@ public class ProblemFlowService {
 
     private static boolean isBlank(String s){ return s == null || s.isBlank(); }
     private static boolean notBlank(String s){ return s != null && !s.isBlank(); }
+
+    // ★ 누락되었던 헬퍼 추가
+    private static String safe(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private static String buildContentTitle(String subject, String concept) {
+        boolean hasSubj = subject != null && !subject.isBlank();
+        boolean hasConcept = concept != null && !concept.isBlank();
+        if (hasSubj && hasConcept) return subject + "_" + concept;
+        if (hasSubj) return subject;
+        if (hasConcept) return concept;
+        return "문제";
+    }
 
     @Transactional
     public AnalyzeResponse generateSimilarProblemsFromFullAnalysis(Long userId, Long problemId) {
@@ -239,11 +275,11 @@ public class ProblemFlowService {
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
-        a.setOption(null); // ✅ 기존 옵션은 사용 안 함
-        a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS); // ✅ 새 필드
+        a.setOption(null);
+        a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS);
         a.setUserRequest("유사문제 2개 생성 (전체 분석 참고)");
         a.setGeminiResponse(rawJson);
-        a.setCreatedAt(java.time.LocalDateTime.now());
+        a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
         // 6) 응답
@@ -251,9 +287,8 @@ public class ProblemFlowService {
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .similarOption(SimilarOption.SIMILAR_PROBLEMS) // ✅ 내려주기
+                .similarOption(SimilarOption.SIMILAR_PROBLEMS)
                 .message(rawJson)
                 .build();
     }
-
 }
