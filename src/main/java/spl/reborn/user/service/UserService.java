@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import spl.reborn.notification.ReminderService;
 import spl.reborn.user.dto.SignUpRequest;
+import spl.reborn.user.dto.UpdateUserRequest;
+import spl.reborn.user.dto.UserProfileResponse;
 import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository;
 
@@ -50,5 +52,46 @@ public class UserService {
     public User findByUserid(String userid) {
         return userRepository.findByUserid(userid)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userid));
+    }
+
+    @Transactional
+    public UserProfileResponse updateUserProfile(long userId, UpdateUserRequest req) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        // 이메일 변경 시: 형식은 @Valid로 1차 체크, 여기서는 중복만 확인
+        if (req.getEmail() != null && !req.getEmail().isBlank()) {
+            String newEmail = req.getEmail().trim();
+            if (!newEmail.equals(user.getEmail())) {
+                if (userRepository.existsByEmailAndIdNot(newEmail, userId)) {
+                    throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+                }
+                user.setEmail(newEmail);
+            }
+        }
+
+        // 학년 변경
+        if (req.getGrade() != null) {
+            int g = req.getGrade();
+            user.setGrade(g);
+        }
+
+        // 학교 변경
+        if (req.getSchool() != null) {
+            user.setSchool(req.getSchool());
+        }
+
+        // 저장
+        userRepository.save(user);
+
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .userid(user.getUserid())
+                .email(user.getEmail())
+                .grade(user.getGrade())
+                .school(user.getSchool())
+                .receiveReminders(user.isReceiveReminders())
+                .build();
     }
 }

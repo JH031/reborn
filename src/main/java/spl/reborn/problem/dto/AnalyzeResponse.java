@@ -10,5 +10,5 @@ public class AnalyzeResponse {
     private Long analysisId;
     private int turn;
     private AnalysisOption option; // 후속 턴은 null
-    private Map<String, Object> display;
+    private String message;
 }

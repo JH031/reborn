@@ -114,35 +114,20 @@ public class ProblemFlowService {
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
         long ownerId = problem.getUser().getId();
-        if (userId == null || ownerId != userId) {  // Long → long 오토언박싱, NPE 방지 위해 null 체크
+        if (userId == null || ownerId != userId) {
             throw new IllegalStateException("본인 문제에만 후속 요청을 보낼 수 있습니다.");
         }
 
-        // 직전 분석(들) 조회
         var latest = analysisRepository.findTopByProblem_ProblemIdOrderByTurnDesc(problemId);
         if (latest == null) {
             throw new IllegalStateException("최초 분석이 없습니다. 먼저 이미지+옵션으로 분석을 실행하세요.");
         }
         int nextTurn = latest.getTurn() + 1;
 
-        // 최근 1~2개를 요약 컨텍스트로 사용
-        List<Analysis> recents = analysisRepository.findTop2ByProblem_ProblemIdOrderByTurnDesc(problemId);
-        StringBuilder recentSummaries = new StringBuilder();
-        for (Analysis r : recents) {
-            recentSummaries.append("[turn=")
-                    .append(r.getTurn())
-                    .append(", option=")
-                    .append(r.getOption())
-                    .append("]\n")
-                    .append(trimForContext(r.getGeminiResponse()))
-                    .append("\n\n");
-        }
+        // ✅ 후속 턴은 "사용자 프롬프트를 그대로" 모델에 전달하고, 받은 원문을 그대로 반환
+        String geminiRaw = geminiService.generateFromText(userPrompt);
 
-        String followUpPrompt = AnalysisPrompts.followUp(recentSummaries.toString(), userPrompt);
-
-        String geminiRaw = geminiService.generateFromText(followUpPrompt);
-
-        // 저장(option=null)
+        // DB 저장 (항상 원문 저장, option=null)
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
@@ -152,17 +137,14 @@ public class ProblemFlowService {
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
-        // 필요시 보강 업데이트 시도(새 정보가 있으면)
-        enrichProblem(problem, geminiRaw);
+        // 후속 턴은 원문 Q&A 성격이므로 Problem(subject/mainConcept) 보강은 스킵
+        // (원하면 enrichProblem(problem, geminiRaw) 호출로 유지 가능)
 
-        Analysis base = analysisRepository.findTopByProblem_ProblemIdAndOptionIsNotNullOrderByTurnDesc(problemId);
-        AnalysisOption displayOption = (base != null) ? base.getOption() : AnalysisOption.APPROACH;
-        Map<String, Object> display = AnalysisDisplayMapper.toDisplay(geminiRaw, displayOption, objectMapper);
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .display(display)
+                .message(geminiRaw) // ✅ 프론트로 원문 그대로
                 .build();
     }
 

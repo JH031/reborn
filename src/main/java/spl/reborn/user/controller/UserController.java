@@ -5,9 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import spl.reborn.security.JwtUtil;
-import spl.reborn.user.dto.LoginRequest;
-import spl.reborn.user.dto.SignUpRequest;
-import spl.reborn.user.dto.TokenResponse;
+import spl.reborn.user.dto.*;
 import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository; // ★ 추가
 import spl.reborn.user.service.UserService;
@@ -42,5 +40,13 @@ public class UserController {
 
         String token = jwtUtil.generateToken(user.getUserid());
         return ResponseEntity.ok(new TokenResponse(token));
+    }
+
+    @PatchMapping("/{userId}/profile")
+    public UserProfileResponse updateProfile(
+            @PathVariable long userId,
+            @Valid @RequestBody UpdateUserRequest req
+    ) {
+        return userService.updateUserProfile(userId, req);
     }
 }

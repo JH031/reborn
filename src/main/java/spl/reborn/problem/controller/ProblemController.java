@@ -1,5 +1,6 @@
 package spl.reborn.problem.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ public class ProblemController {
 
     private final ProblemFlowService problemFlowService;
 
+    @Operation(summary = "사용자가 처음 옵션,이미지 보내서 질문할 때 사용")
     @PostMapping(
             value = "/analyze-first",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
@@ -29,7 +31,7 @@ public class ProblemController {
         return problemFlowService.analyzeFirst(userId, image, option, userRequest);
     }
 
-    /** 2) 후속 턴: 사용자 프롬프트만 */
+    @Operation(summary = "사용자에게 프롬프트 입력 받아서 gemini에게 요청")
     @PostMapping(value = "/{problemId}/ask", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public AnalyzeResponse askFollowUp(
             @RequestParam Long userId,        // TODO: JWT로 대체 권장
