@@ -104,38 +104,34 @@ public class ProblemFlowService {
                 .build();
     }
 
-    /** 2-1) 후속 턴: 사용자 프롬프트만 (호환용) */
+    /** 2-1) 후속 턴(텍스트만) — 호환용 */
     @Transactional
     public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt) {
-        // 이미지 없이 호출하는 기존 코드 호환을 위해 null로 위임
         return analyzeFollowUp(userId, problemId, userPrompt, null);
     }
 
-    /** 2-2) 후속 턴: 사용자 프롬프트 + (선택) 이미지 */
+    /** 2-2) 후속 턴(프롬프트 + 선택 이미지) */
     @Transactional
     public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt, MultipartFile image) {
-        if (userPrompt == null || userPrompt.isBlank()) {
-            throw new IllegalArgumentException("프롬프트가 필요합니다.");
-        }
+        if (userPrompt == null || userPrompt.isBlank()) throw new IllegalArgumentException("프롬프트가 필요합니다.");
 
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
-        long ownerId = problem.getUser().getId();
-        if (userId == null || ownerId != userId) {
+        Long ownerId = problem.getUser().getId();
+        if (userId == null || !ownerId.equals(userId)) {
             throw new IllegalStateException("본인 문제에만 후속 요청을 보낼 수 있습니다.");
         }
 
-        var latest = analysisRepository.findTopByProblem_ProblemIdOrderByTurnDesc(problemId);
-        if (latest == null) {
-            throw new IllegalStateException("최초 분석이 없습니다. 먼저 이미지+옵션으로 분석을 실행하세요.");
-        }
+        Analysis latest = analysisRepository.findTopByProblem_ProblemIdOrderByTurnDesc(problemId);
+        if (latest == null) throw new IllegalStateException("최초 분석이 없습니다. 먼저 analyzeFirst를 실행하세요.");
+
         int nextTurn = latest.getTurn() + 1;
 
         String geminiRaw;
         String imageUrlForThisTurn = null;
 
-        // ✅ 이미지가 있으면 업로드 후 멀티모달 호출, 없으면 텍스트-only
+        // ✅ 이미지가 오면: 업로드 → 이미지+프롬프트 멀티모달 호출
         if (image != null && !image.isEmpty()) {
             try {
                 imageUrlForThisTurn = s3Service.uploadFile(image);
@@ -144,29 +140,26 @@ public class ProblemFlowService {
             }
             geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, userPrompt);
         } else {
+            // ✅ 이미지가 없으면: 텍스트만 호출
             geminiRaw = geminiService.generateFromText(userPrompt);
         }
 
-        // DB 저장 (항상 원문 저장, option=null, 이번 턴 이미지 URL도 저장)
+        // DB 저장 (항상 원문 저장, 이번 턴 이미지 URL도 저장)
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
         a.setOption(null);
         a.setUserRequest(userPrompt);
         a.setGeminiResponse(geminiRaw);
-        a.setImageUrl(imageUrlForThisTurn); // ✅ 이번 턴 업로드 이미지(없으면 null)
+        a.setImageUrl(imageUrlForThisTurn);     // null 가능(이미지 없으면)
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
-
-        // 후속 턴은 원문 Q&A 성격이므로 Problem(subject/mainConcept) 보강은 스킵
-        // (원하면 enrichProblem(problem, geminiRaw) 호출 가능)
 
         return AnalyzeResponse.builder()
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .message(geminiRaw) // ✅ 프론트로 원문 그대로
-                // .imageUrl(imageUrlForThisTurn) // DTO에 필드가 있다면 내려도 됨
+                .message(geminiRaw)             // ✅ Gemini 원문 그대로 반환
                 .build();
     }
 
