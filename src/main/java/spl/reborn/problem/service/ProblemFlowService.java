@@ -13,6 +13,7 @@ import spl.reborn.problem.dto.AnalyzeResponse;
 import spl.reborn.problem.entity.Analysis;
 import spl.reborn.problem.entity.AnalysisOption;
 import spl.reborn.problem.entity.Problem;
+import spl.reborn.problem.entity.SimilarOption;
 import spl.reborn.problem.repository.AnalysisRepository;
 import spl.reborn.problem.repository.ProblemRepository;
 import spl.reborn.problem.support.AnalysisDisplayMapper;
@@ -24,7 +25,6 @@ import spl.reborn.problem.support.SubjectConceptRefiner;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -184,9 +184,54 @@ public class ProblemFlowService {
     private static boolean isBlank(String s){ return s == null || s.isBlank(); }
     private static boolean notBlank(String s){ return s != null && !s.isBlank(); }
 
-    private String trimForContext(String s) {
-        if (s == null) return "";
-        // 최근 컨텍스트로 1500자 정도만 사용 (토큰 절약)
-        return s.length() > 1500 ? s.substring(0, 1500) + " …(truncated)" : s;
+    @Transactional
+    public AnalyzeResponse generateSimilarProblemsFromFullAnalysis(Long userId, Long problemId) {
+        // 1) 소유자 검증
+        Problem problem = problemRepository.findById(problemId)
+                .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
+
+        long ownerId = problem.getUser().getId();
+        if (userId == null || ownerId != userId) {
+            throw new IllegalStateException("본인 문제에만 유사문제를 생성할 수 있습니다.");
+        }
+
+        // 2) 최신 분석 가져오기
+        Analysis latest = analysisRepository.findTopByProblem_ProblemIdOrderByTurnDesc(problemId);
+        if (latest == null) {
+            throw new IllegalStateException("최초 분석이 없습니다. 먼저 analyzeFirst를 실행하세요.");
+        }
+
+        // 3) 프롬프트 (전체 분석 내용 + 템플릿)
+        String prompt = """
+다음은 원문 문제에 대한 상세 분석(JSON)입니다:
+%s
+
+%s
+""".formatted(latest.getGeminiResponse(), AnalysisPrompts.SIMILAR_PROBLEMS_FROM_FULL_ANALYSIS);
+
+        // 4) Gemini 호출
+        String rawJson = geminiService.generateFromText(prompt);
+
+        // 5) 저장 (turn + 1, option=null, similarOption=SIMILAR_PROBLEMS)
+        int nextTurn = latest.getTurn() + 1;
+        Analysis a = new Analysis();
+        a.setProblem(problem);
+        a.setTurn(nextTurn);
+        a.setOption(null); // ✅ 기존 옵션은 사용 안 함
+        a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS); // ✅ 새 필드
+        a.setUserRequest("유사문제 2개 생성 (전체 분석 참고)");
+        a.setGeminiResponse(rawJson);
+        a.setCreatedAt(java.time.LocalDateTime.now());
+        analysisRepository.save(a);
+
+        // 6) 응답
+        return AnalyzeResponse.builder()
+                .analysisId(a.getAnalysisId())
+                .turn(nextTurn)
+                .option(null)
+                .similarOption(SimilarOption.SIMILAR_PROBLEMS) // ✅ 내려주기
+                .message(rawJson)
+                .build();
     }
+
 }

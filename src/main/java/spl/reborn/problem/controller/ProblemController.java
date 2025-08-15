@@ -3,6 +3,8 @@ package spl.reborn.problem.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import spl.reborn.problem.dto.*;
@@ -39,5 +41,15 @@ public class ProblemController {
             @RequestBody FollowUpRequest body  // { "prompt": "..." }
     ) {
         return problemFlowService.analyzeFollowUp(userId, problemId, body.getPrompt());
+    }
+
+    @Operation(summary = "유사한 문제 요청")
+    @PostMapping("/{problemId}/similar")
+    public ResponseEntity<AnalyzeResponse> generateSimilar(
+            @RequestParam Long userId,
+            @PathVariable Long problemId
+    ) {
+        AnalyzeResponse res = problemFlowService.generateSimilarProblemsFromFullAnalysis(userId, problemId);
+        return ResponseEntity.ok(res);
     }
 }

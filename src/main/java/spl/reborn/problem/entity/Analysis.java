@@ -33,6 +33,10 @@ public class Analysis {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String geminiResponse; // Gemini의 답변
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "similar_option")
+    private SimilarOption similarOption;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }
