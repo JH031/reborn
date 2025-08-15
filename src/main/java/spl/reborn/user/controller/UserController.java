@@ -56,4 +56,10 @@ public class UserController {
     ) {
         return userService.updateUserProfile(userId, req);
     }
+
+    @PostMapping("/find-id")
+    public ResponseEntity<?> findId(@Valid @RequestBody FindIdRequest request) {
+        String userid = userService.findUseridByNameAndEmail(request.getName(), request.getEmail());
+        return ResponseEntity.ok(new FindIdResponse(userid));
+    }
 }
