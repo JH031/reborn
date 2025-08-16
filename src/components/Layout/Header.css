@@ -1,29 +1,49 @@
 /* src/components/Layout/Header.css */
 .header {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px;
-  font-size: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    height: 60px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.menu-icon {
+    font-size: 24px;
+    cursor: pointer;
+    color: #555;
 }
 
 .logo {
-  font-weight: bold;
-  color: pink;
-  font-size: 24px;
-}
-.login-btn {
-  background-color: pink;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
+    font-weight: bold;
+    font-size: 24px;
+    color: var(--primary-color);
 }
 
+.header-right .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-.auth-links a {
-  text-decoration: none;
-  color: black;
-  margin-left: 5px;
+.header-right .login-btn, .header-right .logout-btn {
+    border: 1px solid var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.header-right .login-btn:hover, .header-right .logout-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
 }

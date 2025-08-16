@@ -1,0 +1,76 @@
+.edit-profile-content {
+    padding: 20px;
+    background-color: #f9f9f9;
+    flex-grow: 1;
+}
+
+.edit-profile-form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box; /* 패딩이 너비에 포함되도록 설정 */
+}
+
+.save-button {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    background-color: #e85a70;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.save-button:hover {
+    background-color: #d14f62;
+}
+
+/* ReviewDetailPage에서 사용했던 헤더 스타일 재사용 */
+.simple-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: white;
+}
+.simple-header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.back-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    z-index: 10;
+}

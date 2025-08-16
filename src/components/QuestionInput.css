@@ -1,26 +1,92 @@
-/* src/components/QuestionInput.css */
-.question-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 60px 20px;
-  background-color: pink;
-  border-radius: 20px;
-  padding: 10px;
+.question-input-area {
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #f0f0f0;
 }
 
-.question-box input {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  margin-right: 10px;
+.image-preview-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 10px;
+    margin-left: 10px;
 }
-
-.question-box button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 10px;
-  background-color: white;
-  cursor: pointer;
+.image-preview-wrapper img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+.remove-image-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 20px;
+}
+#file-input {
+    display: none; /* 실제 input은 숨김 */
+}
+/* --- 첫 질문 --- */
+.initial-prompt-area {
+    text-align: center;
+}
+.file-label-large {
+    display: block;
+    padding: 20px;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #888;
+    margin-bottom: 10px;
+}
+.option-buttons {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+.option-buttons button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #FFB6C1;
+    background-color: #FFF0F5;
+    color: #e85a70;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
+}
+/* --- 추가 질문 --- */
+.follow-up-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.file-label {
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+    padding: 5px;
+}
+.text-input {
+    flex-grow: 1;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 16px;
+}
+.send-button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 20px;
+    background-color: #FFC0CB;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
 }

@@ -1,0 +1,34 @@
+.similar-problems-container {
+    background-color: #f7f7f7;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 10px;
+}
+.similar-problems-container h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 15px;
+    color: #333;
+}
+.problem-card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+}
+.problem-card .problem-question {
+    margin-top: 0;
+}
+.problem-card summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: #e85a70;
+}
+.solution-content {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+    color: #555;
+    font-size: 14px;
+}
