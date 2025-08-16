@@ -34,32 +34,43 @@ const MainPage = () => {
           onMenuClick={() => setSidebarOpen(!isSidebarOpen)}
         />
 
+        {/* 채팅 영역 */}
         <main id="chat-messages" className="chat-messages-area">
           {messages.map((msg) => {
             const isUser = msg.sender === 'user';
             return (
-              <div key={msg.id} className={`message-row ${isUser ? 'outgoing' : 'incoming'}`}>
-                {/* 아바타 */}
-                {!isUser && <div className="avatar avatar-ai" aria-hidden>{getInitial(msg.sender)}</div>}
+              <div
+                key={msg.id}
+                className={`message-row ${isUser ? 'outgoing' : 'incoming'}`}
+              >
+                {/* 아바타 (좌: AI / 우: USER) */}
+                {!isUser && (
+                  <div className="avatar avatar-ai" aria-hidden>
+                    {getInitial(msg.sender)}
+                  </div>
+                )}
 
                 {/* 말풍선 */}
                 <div className={`bubble ${isUser ? 'bubble-user' : 'bubble-ai'}`}>
-                  {/* 이미지 (원본 문제/첨부) */}
-                  {msg.file && <img src={msg.file} alt="첨부 이미지" className="bubble-image" />}
-
-                  {/* ▼▼ 메시지 타입별 분기 ▼▼ */}
-                  {msg.type === 'similar' && Array.isArray(msg.problems) ? (
-                    <SimilarProblems problems={msg.problems} />
-                  ) : (
-                    // text가 있을 때만 출력 (빈말풍선 방지)
-                    typeof msg.text === 'string' && msg.text.trim().length > 0 && (
-                      msg.text.trim().startsWith('{')
-                        ? <pre className="bubble-text code">{msg.text}</pre>
-                        : <p className="bubble-text">{msg.text}</p>
-                    )
+                  {/* 이미지가 있을 경우 (문제 이미지 / 첨부 이미지) */}
+                  {msg.file && (
+                    <img src={msg.file} alt="첨부 이미지" className="bubble-image" />
                   )}
 
-                  {/* 액션 버튼 (첫 분석 직후만) */}
+                  {/* 메시지 타입별 내용 */}
+                 {msg.type === 'similar' ? (
+                   <SimilarProblems problems={msg.problems || []} />
+                 ) : (
+                   typeof msg.text === 'string' &&
+                   msg.text.length > 0 &&
+                   (msg.text.trim().startsWith('{') ? (
+                     <pre className="bubble-text code">{msg.text}</pre>
+                 ) : (
+                   <p className="bubble-text">{msg.text}</p>
+                  ))
+                )}
+
+                  {/* 액션 버튼 (첫 분석 답변에만) */}
                   {msg.isActionable && (
                     <div className="action-buttons">
                       <button onClick={handleRequestSimilarProblems}>유사 문제</button>
@@ -67,7 +78,11 @@ const MainPage = () => {
                   )}
                 </div>
 
-                {isUser && <div className="avatar avatar-user" aria-hidden>{getInitial(msg.sender)}</div>}
+                {isUser && (
+                  <div className="avatar avatar-user" aria-hidden>
+                    {getInitial(msg.sender)}
+                  </div>
+                )}
               </div>
             );
           })}

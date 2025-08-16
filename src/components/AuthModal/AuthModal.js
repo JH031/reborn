@@ -4,6 +4,8 @@ import React from 'react';
 import './AuthModal.css';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
+import FindIdForm from './FindIdForm'; // ★ 추가
+
 
 const AuthModal = ({ type, onClose, switchType }) => {
   return (
@@ -13,12 +15,9 @@ const AuthModal = ({ type, onClose, switchType }) => {
         <button className="close-btn" onClick={onClose}>
           &#10005;
         </button>
-        {/* LoginForm에 onClose prop을 전달합니다. */}
-        {type === 'login' ? (
-          <LoginForm switchType={switchType} onClose={onClose} />
-        ) : (
-          <SignupForm />
-        )}
+        {type === 'login' && <LoginForm switchType={switchType} onClose={onClose} />}
+        {type === 'signup' && <SignupForm />}
+        {type === 'findId' && <FindIdForm switchType={switchType} />} {/* ★ 추가 */}
       </div>
     </>
   );

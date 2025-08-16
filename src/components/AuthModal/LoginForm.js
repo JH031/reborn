@@ -1,5 +1,4 @@
 // src/components/AuthModal/LoginForm.js
-
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +58,8 @@ const LoginForm = ({ switchType, onClose }) => {
       <button type="submit" className="email-login-btn">로그인</button>
       <div className="login-bottom-links">
         <span className="link" onClick={() => switchType('signup')}>회원가입</span>
+        <span className="link" onClick={() => switchType('findId')}>아이디 찾기</span>
+
       </div>
     </form>
   );
