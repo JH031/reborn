@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class ChatTurnDto {
     private int turn;
     private String role; // "user" 또는 "model"
-    private String content;
+    private Object content;
     private String imageUrl;
     private LocalDateTime createdAt;
 }

@@ -10,10 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import spl.reborn.ai.prompt.AnalysisPrompts;
 import spl.reborn.ai.service.GeminiInlineService;
 import spl.reborn.problem.dto.*;
-import spl.reborn.problem.entity.Analysis;
-import spl.reborn.problem.entity.AnalysisOption;
-import spl.reborn.problem.entity.Problem;
-import spl.reborn.problem.entity.SimilarOption;
+import spl.reborn.problem.entity.*;
 import spl.reborn.problem.repository.AnalysisRepository;
 import spl.reborn.problem.repository.ProblemRepository;
 import spl.reborn.problem.support.AnalysisDisplayMapper;
@@ -300,7 +297,7 @@ public class ProblemFlowService {
 
     @Transactional(readOnly = true)
     public ChatHistoryResponse getChatHistory(Long userId, Long problemId) {
-        // ... (기존 그대로)
+        // 1. 문제 소유자 확인
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
@@ -308,52 +305,35 @@ public class ProblemFlowService {
             throw new IllegalStateException("본인의 문제에 대한 채팅 내역만 조회할 수 있습니다.");
         }
 
+        // 2. 채팅 내역 전체 조회
         List<Analysis> analyses = analysisRepository.findByProblem_ProblemIdOrderByTurnAsc(problemId);
         if (analyses.isEmpty()) {
             throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
         }
 
-
-        Analysis firstTurn = analyses.get(0);
-        String title = "제목 없음";
-        if (firstTurn.getTurn() == 1 && firstTurn.getGeminiResponse() != null) {
-            try {
-                String cleanedJson = cleanGeminiResponse(firstTurn.getGeminiResponse());
-                Map<String, Object> firstResponseMap = objectMapper.readValue(cleanedJson, new TypeReference<>() {});
-                title = (String) firstResponseMap.getOrDefault("problem_summary", "제목 없음");
-            } catch (IOException e) {
-                log.warn("turn=1 분석 결과의 JSON 파싱 실패, problemId={}", problemId, e);
-            }
-        }
-
-
+        // 3. Analysis 목록을 ChatTurnDto 목록으로 변환
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
+            // 사용자의 요청 (기존과 동일)
             if (analysis.getUserRequest() != null && !analysis.getUserRequest().isBlank()) {
                 chatTurns.add(new ChatTurnDto(
-                        analysis.getTurn(),
-                        "user",
-                        analysis.getUserRequest(),
-                        null,
-                        analysis.getCreatedAt()
+                        analysis.getTurn(), "user", analysis.getUserRequest(), null, analysis.getCreatedAt()
                 ));
             }
 
+            // ✅ 모델(Gemini)의 응답을 파싱하여 구조화된 객체로 변환
+            Object modelContent = convertAnalysisToStructuredContent(analysis);
             chatTurns.add(new ChatTurnDto(
-                    analysis.getTurn(),
-                    "model",
-                    analysis.getGeminiResponse(),
-                    analysis.getImageUrl(),
-                    analysis.getCreatedAt()
+                    analysis.getTurn(), "model", modelContent, analysis.getImageUrl(), analysis.getCreatedAt()
             ));
         }
 
+        // 4. 최종 응답 DTO 생성 및 반환
         return new ChatHistoryResponse(
                 problem.getProblemId(),
                 problem.getOriginalImageUrl(),
                 chatTurns
         );
-
     }
     @Transactional(readOnly = true)
     public List<ProblemSummaryDto> getProblemList(Long userId) {
@@ -390,5 +370,56 @@ public class ProblemFlowService {
         }
 
         return problemSummaries;
+    }
+
+    /**
+     * ✅ Analysis 엔티티를 프론트엔드가 사용할 구조화된 content 객체로 변환하는 헬퍼 메서드
+     */
+    private Object convertAnalysisToStructuredContent(Analysis analysis) {
+        // 일반 텍스트 응답인 경우 (후속 질문)
+        if (analysis.getOption() == null && analysis.getSimilarOption() == null) {
+            return UnifiedProblemResponseDto.builder()
+                    .analysisId(analysis.getAnalysisId())
+                    .turn(analysis.getTurn())
+                    .responseType(ResponseType.TEXT)
+                    .message(analysis.getGeminiResponse())
+                    .build();
+        }
+
+        // 유사 문제 응답인 경우
+        if (analysis.getSimilarOption() == SimilarOption.SIMILAR_PROBLEMS) {
+            try {
+                String cleanedJson = cleanGeminiResponse(analysis.getGeminiResponse());
+                SimilarProblemResponseDto responseDto = objectMapper.readValue(cleanedJson, SimilarProblemResponseDto.class);
+                List<SimilarProblemDto> problems = responseDto.getProblems() != null ? responseDto.getProblems() : List.of();
+                return UnifiedProblemResponseDto.builder()
+                        .analysisId(analysis.getAnalysisId())
+                        .turn(analysis.getTurn())
+                        .responseType(ResponseType.SIMILAR_PROBLEMS)
+                        .similarProblems(problems)
+                        .build();
+            } catch (IOException e) {
+                // 파싱 실패 시 원본 텍스트라도 보여주도록 처리
+                return analysis.getGeminiResponse();
+            }
+        }
+
+        // 최초 분석 응답인 경우
+        if (analysis.getOption() != null) {
+            try {
+                Map<String, Object> displayMap = AnalysisDisplayMapper.toDisplay(analysis.getGeminiResponse(), analysis.getOption(), objectMapper);
+                return UnifiedProblemResponseDto.builder()
+                        .analysisId(analysis.getAnalysisId())
+                        .turn(analysis.getTurn())
+                        .responseType(ResponseType.ANALYSIS)
+                        .display(displayMap)
+                        .build();
+            } catch (Exception e) {
+                return analysis.getGeminiResponse();
+            }
+        }
+
+        // 모든 경우에 해당하지 않으면 원본 텍스트 반환
+        return analysis.getGeminiResponse();
     }
 }
