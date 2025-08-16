@@ -227,8 +227,7 @@ public class ProblemFlowService {
 
     @Transactional
     public AnalyzeResponse generateSimilarProblemsFromFullAnalysis(Long userId, Long problemId) {
-        // ... (기존 그대로)
-        // 변경 없음
+
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
@@ -252,13 +251,18 @@ public class ProblemFlowService {
         String rawJson = geminiService.generateFromText(prompt);
         String cleanedJson = cleanGeminiResponse(rawJson);
 
+        // JSON 문자열 내의 모든 '\'를 '\\'로 변경하여 유효한 형식으로 만듭니다.
+        String escapedJson = cleanedJson.replace("\\", "\\\\");
+
         List<SimilarProblemDto> similarProblems;
         try {
-            SimilarProblemResponseDto responseDto = objectMapper.readValue(cleanedJson, SimilarProblemResponseDto.class);
+            // ✅ 수정된 escapedJson으로 파싱을 시도합니다.
+            SimilarProblemResponseDto responseDto = objectMapper.readValue(escapedJson, SimilarProblemResponseDto.class);
             similarProblems = responseDto.getProblems();
             if (similarProblems == null) similarProblems = List.of();
         } catch (IOException e) {
-            log.error("Gemini 유사 문제 JSON 파싱에 실패했습니다: {}", cleanedJson, e);
+            // 로그를 남길 때도 수정된 JSON을 남기는 것이 디버깅에 더 좋습니다.
+            log.error("Gemini 유사 문제 JSON 파싱에 실패했습니다: {}", escapedJson, e);
             similarProblems = List.of();
         }
 
@@ -268,7 +272,7 @@ public class ProblemFlowService {
         a.setTurn(nextTurn);
         a.setOption(null);
         a.setSimilarOption(SimilarOption.SIMILAR_PROBLEMS);
-        a.setUserRequest("유사문제 2개 생성 (전체 분석 참고)");
+        a.setUserRequest(null);
         a.setGeminiResponse(rawJson);
         a.setCreatedAt(java.time.LocalDateTime.now());
         analysisRepository.save(a);
