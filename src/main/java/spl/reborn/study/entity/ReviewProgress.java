@@ -28,6 +28,9 @@ public class ReviewProgress {
     private LocalDate nextReviewDate;
     private boolean completed;
 
+    @Column(length = 1024)   // S3 URL 길이 대비
+    private String imageUrl;  // ★ 추가
+
     @Enumerated(EnumType.STRING)
     private UnderstandingResult lastResult;
 

@@ -30,7 +30,17 @@ public class ReminderService {
     /**
      * 학습 콘텐츠 저장 시: 해당 콘텐츠마다 1/4/7/14/30일 예약 생성
      * (기준일: studyDate, null이면 오늘)
+     *
+     * 이미지 URL은 DB에 저장하지 않으므로 인자는 무시하고 오버로드로 위임합니다.
      */
+    // ★★★ CHANGED: 이미지 인자는 받되 내부에서 사용하지 않음(호환용)
+    public void createForStudy(long userId, Long contentId, String contentTitle, LocalDate studyDate, String imageUrl) {
+        LocalDate base = (studyDate != null) ? studyDate : LocalDate.now(KST);
+        String title = (contentTitle == null || contentTitle.isBlank()) ? "복습 알림" : contentTitle;
+        scheduleOffsetsFromDate(userId, contentId, title, base); // 이미지 미사용
+    }
+
+    // ★★★ ADDED: 이미지 없는 정식 오버로드
     public void createForStudy(long userId, Long contentId, String contentTitle, LocalDate studyDate) {
         LocalDate base = (studyDate != null) ? studyDate : LocalDate.now(KST);
         String title = (contentTitle == null || contentTitle.isBlank()) ? "복습 알림" : contentTitle;
@@ -42,12 +52,17 @@ public class ReminderService {
      * - 사용자 수신 동의 OFF면 아무 것도 하지 않음
      * - 같은 콘텐츠의 미발송 예약은 먼저 삭제(중복 방지)
      */
+    // ★★★ CHANGED: 이미지 인자는 받되 내부에서 사용하지 않음(호환용)
+    public void scheduleOffsetsFromDate(long userId, Long contentId, String contentTitle, LocalDate startDate, String imageUrl) {
+        scheduleOffsetsFromDate(userId, contentId, contentTitle, startDate); // 이미지 미사용
+    }
+
+    // ★★★ ADDED: 이미지 없는 정식 구현
     public void scheduleOffsetsFromDate(long userId, Long contentId, String contentTitle, LocalDate startDate) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
         if (!user.isReceiveReminders()) return;
 
-        // 같은 콘텐츠의 미발송 예약 제거(중복 방지)
         if (contentId != null) {
             reminderRepository.deleteByUser_IdAndContentIdAndSentFalse(userId, contentId);
         }
@@ -56,7 +71,7 @@ public class ReminderService {
 
         for (int d : OFFSETS) {
             LocalDateTime dueAt = LocalDateTime.of(startDate.plusDays(d), DEFAULT_SEND_TIME);
-            // ★ save() 대신 업서트로 중복 충돌 제거
+            // ★★★ CHANGED: Repository 시그니처에 맞게 imageUrl 제거
             reminderRepository.upsert(userId, contentId, title, d, dueAt);
         }
     }
@@ -65,12 +80,25 @@ public class ReminderService {
      * NOT_UNDERSTOOD 처리용: 내일부터 다시 1/4/7/14/30 재예약
      * - 같은 콘텐츠의 미발송 예약은 먼저 삭제
      */
+    // ★★★ CHANGED: 이미지 인자는 받되 내부에서 사용하지 않음(호환용)
+    public void resetFromTomorrow(long userId, Long contentId, String contentTitle, String imageUrl) {
+        LocalDate startDate = LocalDate.now(KST).plusDays(1);
+        scheduleOffsetsFromDate(userId, contentId, contentTitle, startDate); // 이미지 미사용
+    }
+
+    // ★★★ ADDED: 이미지 없는 정식 오버로드
     public void resetFromTomorrow(long userId, Long contentId, String contentTitle) {
         LocalDate startDate = LocalDate.now(KST).plusDays(1);
         scheduleOffsetsFromDate(userId, contentId, contentTitle, startDate);
     }
 
     /** 사용자 단위 기본 예약 생성(옵션) */
+    // ★★★ CHANGED: 이미지 인자는 받되 내부에서 사용하지 않음(호환용)
+    public void createDefaultReminders(long userId, String contentTitle, String imageUrl) {
+        createDefaultReminders(userId, contentTitle); // 이미지 미사용
+    }
+
+    // ★★★ ADDED: 이미지 없는 정식 구현
     public void createDefaultReminders(long userId, String contentTitle) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
@@ -81,7 +109,8 @@ public class ReminderService {
 
         for (int d : OFFSETS) {
             LocalDateTime dueAt = LocalDateTime.of(base.plusDays(d), DEFAULT_SEND_TIME);
-            // contentId = null 로도 업서트 호출 (UNIQUE 인덱스에 NULL 포함이면 중복으로 안 잡히는 게 일반적)
+            // contentId = null (디폴트 예약)
+            // ★★★ CHANGED: Repository 시그니처에 맞게 imageUrl 제거
             reminderRepository.upsert(user.getId(), null, title, d, dueAt);
         }
     }

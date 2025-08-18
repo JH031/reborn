@@ -23,6 +23,6 @@ public class UserStudy {
     private LocalDate studyDate;
 
     // ★ Problem의 이미지 URL을 저장
-    @Column(nullable = false, length = 1024)
+    @Column(name = "image_url", length = 1024)
     private String imageUrl;
 }

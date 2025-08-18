@@ -19,6 +19,8 @@ import spl.reborn.user.entity.User;
 import spl.reborn.user.repository.UserRepository;
 import spl.reborn.problem.support.SubjectConceptExtractor;
 import spl.reborn.problem.support.SubjectConceptRefiner;
+// ★ 리마인더 서비스 사용 (기존 그대로)
+import spl.reborn.notification.ReminderService;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -26,10 +28,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-// ★ 추가: user_study 저장을 위한 import
+// ★ user_study 저장 관련
 import java.time.LocalDate;
 import spl.reborn.study.entity.UserStudy;
 import spl.reborn.study.repository.UserStudyRepository;
+
+// ★★★ ADDED: review_progress 직접 생성용
+import spl.reborn.study.entity.ReviewProgress;                      // ★★★ ADDED
+import spl.reborn.study.repository.ReviewProgressRepository;        // ★★★ ADDED
 
 @Slf4j
 @Service
@@ -43,8 +49,14 @@ public class ProblemFlowService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    // ★ 추가: user_study 저장용 리포지토리
+    // user_study 저장 리포지토리 (기존)
     private final UserStudyRepository userStudyRepository;
+
+    // 리마인더 자동 생성 (기존)
+    private final ReminderService reminderService;
+
+    // ★★★ ADDED: review_progress 저장 리포지토리
+    private final ReviewProgressRepository reviewProgressRepository;   // ★★★ ADDED
 
     /** 1) 최초: 이미지+옵션(무조건) */
     @Transactional
@@ -100,8 +112,7 @@ public class ProblemFlowService {
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
-        // ★★★★★ 추가: user_study 자동 저장
-        // 제목 우선순위: mainConcept → subject → "제목 없음"
+        // ★★★★★ user_study 자동 저장 (기존)
         String subj = problem.getSubject();
         String main = problem.getMainConcept();
 
@@ -124,6 +135,41 @@ public class ProblemFlowService {
         userStudyRepository.save(study);
         log.info("[UserStudy] created id={}, user={}, title='{}', date={}, img={}",
                 study.getId(), user.getId(), contentTitle, study.getStudyDate(), study.getImageUrl());
+
+        // ★★★ ADDED: review_progress 초기 행 생성 (옵션 B)
+        try {
+            ReviewProgress rp = new ReviewProgress();
+            rp.setUserStudy(study);
+            rp.setOwner(user);
+            rp.setStageIndex(0);
+            rp.setCompleted(false);
+            rp.setLastResult(null);
+            rp.setNextReviewDate(study.getStudyDate().plusDays(1));  // 첫 복습일 = +1일
+
+            rp.setImageUrl(study.getImageUrl());                     // ★★★ ADD: 이미지 URL 복사
+
+            reviewProgressRepository.save(rp);
+            log.info("[ReviewProgress] created id={}, userStudyId={}, next={}",
+                    rp.getId(), study.getId(), rp.getNextReviewDate());
+        } catch (Exception e) {
+            log.error("[ReviewProgress] create failed: studyId={}, err={}", study.getId(), e.toString(), e);
+        }
+
+        // 리마인더 **자동 생성** (기존 로직 그대로 유지)
+        try {
+            reminderService.createForStudy(
+                    user.getId(),
+                    study.getId(),          // contentId: UserStudy PK
+                    study.getContentTitle(),
+                    study.getStudyDate(),   // 기준일
+                    study.getImageUrl()     // (Reminder 쪽에서 이미지 인자는 무시/오버로드 처리 가능)
+            );
+            log.info("[Reminder] scheduled for user={}, contentId={}, title='{}'",
+                    user.getId(), study.getId(), contentTitle);
+        } catch (Exception e) {
+            log.error("[Reminder] schedule failed user={}, contentId={}, err={}",
+                    user.getId(), study.getId(), e.toString(), e);
+        }
 
         Map<String, Object> display = AnalysisDisplayMapper.toDisplay(geminiRaw, option, objectMapper);
         return AnalyzeFirstResponse.builder()
@@ -348,6 +394,7 @@ public class ProblemFlowService {
                 chatTurns
         );
     }
+
     @Transactional(readOnly = true)
     public List<ProblemSummaryDto> getProblemList(Long userId) {
         // 1. 해당 사용자의 모든 Problem을 최신순으로 조회
@@ -359,7 +406,7 @@ public class ProblemFlowService {
         for (Problem problem : problems) {
             // 3. 각 Problem의 첫 번째 분석(turn=1)을 조회하여 제목 추출
             String title = analysisRepository.findFirstByProblem_ProblemIdOrderByTurnAsc(problem.getProblemId())
-                    .map(firstAnalysis -> { // Optional.map을 사용하여 코드를 간결하게 만듦
+                    .map(firstAnalysis -> {
                         if (firstAnalysis.getGeminiResponse() != null) {
                             try {
                                 String cleanedJson = cleanGeminiResponse(firstAnalysis.getGeminiResponse());

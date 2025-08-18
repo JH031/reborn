@@ -44,7 +44,7 @@ public class UserService {
 
         // 4) 리마인더 동의 시 기본 스케줄 생성
         if (user.isReceiveReminders()) {
-            reminderService.createDefaultReminders(user.getId(), null);
+            reminderService.createDefaultReminders(user.getId(), "복습 알림", null);
         }
     }
 

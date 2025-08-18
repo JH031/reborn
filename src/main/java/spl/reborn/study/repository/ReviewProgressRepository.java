@@ -1,3 +1,4 @@
+// spl.reborn.study.repository.ReviewProgressRepository.java
 package spl.reborn.study.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,31 +8,43 @@ import spl.reborn.study.entity.ReviewProgress;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, Long> {
 
-    // “해당 날짜에 해야 할 것만”
+    /**
+     * 지정한 날짜에 해야 할 복습 목록
+     */
     @Query("""
-        select rp from ReviewProgress rp
+        select rp
+        from ReviewProgress rp
         join fetch rp.userStudy us
-        join fetch rp.owner o
-        where o.id = :userId
+        where rp.owner.id = :userId
           and rp.completed = false
           and rp.nextReviewDate = :targetDate
+        order by rp.nextReviewDate asc
     """)
     List<ReviewProgress> findDueOn(@Param("userId") Long userId,
                                    @Param("targetDate") LocalDate targetDate);
 
-    // “기한 지난 것 + 오늘 것”
+    /**
+     * 기한이 지난 복습 + 오늘 복습 목록
+     */
     @Query("""
-        select rp from ReviewProgress rp
+        select rp
+        from ReviewProgress rp
         join fetch rp.userStudy us
-        join fetch rp.owner o
-        where o.id = :userId
+        where rp.owner.id = :userId
           and rp.completed = false
           and rp.nextReviewDate <= :targetDate
         order by rp.nextReviewDate asc
     """)
     List<ReviewProgress> findOverdueAndToday(@Param("userId") Long userId,
                                              @Param("targetDate") LocalDate targetDate);
+
+    /**
+     * 진행도 1건 조회: userStudy.id + owner.id 기준
+     * (StudyCheckService에서 진행도 갱신 시 사용)
+     */
+    Optional<ReviewProgress> findByUserStudy_IdAndOwner_Id(Long userStudyId, Long ownerId);
 }

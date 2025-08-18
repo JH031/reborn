@@ -25,6 +25,7 @@ public class Reminder {
     private Long contentId;          // ★ 어떤 학습(콘텐츠)인지 구분용
     private String contentTitle;     // 메일 제목에 표시
 
+
     private int offsetDays;          // 1,3,7,30
     private LocalDateTime dueAt;     // 발송 예정 시각
     private boolean sent = false;
