@@ -13,15 +13,11 @@ const SignupForm = () => {
     school: '',
     grade: '',
     email: '',
-    receiveEmails: false,
+    // ✅ 백엔드 키와 동일한 이름으로 관리
+    receiveReminders: false,
   });
 
-  // 아이디 중복 확인 상태 관리
-  const [idCheck, setIdCheck] = useState({
-    checked: false, // 확인 완료 여부
-    message: '',    // 상태 메시지 (사용 가능/불가능)
-  });
-
+  const [idCheck, setIdCheck] = useState({ checked: false, message: '' });
   const [gradeOptions, setGradeOptions] = useState([]);
 
   useEffect(() => {
@@ -32,49 +28,34 @@ const SignupForm = () => {
     } else {
       setGradeOptions([]);
     }
-    setForm(prevForm => ({ ...prevForm, grade: '' }));
+    setForm(prev => ({ ...prev, grade: '' }));
   }, [form.school]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
-    
-    // 아이디 필드를 수정하면, 중복 확인 상태를 초기화
-    if (name === 'id') {
-      setIdCheck({ checked: false, message: '' });
+    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (name === 'id') setIdCheck({ checked: false, message: '' });
+  };
+
+  const handleIdCheck = async () => {
+    if (!form.id) {
+      alert('아이디를 먼저 입력해주세요.');
+      return;
+    }
+    try {
+      await axios.get(`http://localhost:8080/api/users/check-id?userid=${form.id}`);
+      setIdCheck({ checked: false, message: '이미 사용 중인 아이디입니다.' });
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setIdCheck({ checked: true, message: '사용 가능한 아이디입니다.' });
+      } else {
+        console.error('아이디 중복 확인 중 오류:', error);
+        setIdCheck({ checked: false, message: '오류가 발생했습니다. 다시 시도해주세요.' });
+      }
     }
   };
 
-  // 아이디 중복 확인 함수
-const handleIdCheck = async () => {
-  if (!form.id) {
-    alert('아이디를 먼저 입력해주세요.');
-    return;
-  }
-  try {
-    // 백엔드에 아이디 중복 확인 요청
-    await axios.get(`http://localhost:8080/api/users/check-id?userid=${form.id}`);
-
-    // [로직 변경 ①] 요청이 성공했다는 것은, 해당 유저가 존재한다는 의미입니다.
-    // 따라서 '이미 사용 중인 아이디'로 처리해야 합니다.
-    setIdCheck({ checked: false, message: '이미 사용 중인 아이디입니다.' });
-
-  } catch (error) {
-    // [로직 변경 ②] 요청이 실패했을 때, 어떤 에러인지 확인합니다.
-    // error.response.status === 404는 'Not Found', 즉 유저가 없다는 의미입니다.
-    if (error.response && error.response.status === 404) {
-      // 이 경우가 진짜 '사용 가능한 아이디'입니다.
-      setIdCheck({ checked: true, message: '사용 가능한 아이디입니다.' });
-    } else {
-      // 404 이외의 다른 서버 에러(500 등)나 네트워크 에러일 경우
-      console.error("아이디 중복 확인 중 오류 발생:", error);
-      setIdCheck({ checked: false, message: '오류가 발생했습니다. 다시 시도해주세요.' });
-    }
-  }
-};
-
   const handleSubmit = async () => {
-    // 유효성 검사
     if (!idCheck.checked) {
       alert('아이디 중복 확인을 해주세요.');
       return;
@@ -87,16 +68,18 @@ const handleIdCheck = async () => {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    
+
     const schoolMapping = { '초등': 'ELEMENTARY', '중등': 'MIDDLE', '고등': 'HIGH' };
+
+    // ✅ Swagger 스키마에 맞춘 페이로드
     const apiData = {
       userid: form.id,
       name: form.name,
       password: form.password,
       email: form.email,
-      grade: parseInt(form.grade.replace('학년', '')),
+      grade: parseInt(form.grade.replace('학년', ''), 10),
       school: schoolMapping[form.school],
-      receiveEmails: form.receiveEmails,
+      receiveReminders: !!form.receiveReminders,
     };
 
     try {
@@ -115,17 +98,52 @@ const handleIdCheck = async () => {
   return (
     <div>
       <h2>회원가입</h2>
-      <input name="name" placeholder="이름" onChange={handleChange} value={form.name} />
-      
-      <div className="input-with-button">
-        <input name="id" placeholder="아이디" onChange={handleChange} value={form.id} />
-        <button onClick={handleIdCheck} type="button">중복 확인</button>
-      </div>
-      {idCheck.message && <p className={`check-message ${idCheck.checked ? 'success' : 'error'}`}>{idCheck.message}</p>}
 
-      <input name="password" type="password" placeholder="비밀번호" onChange={handleChange} value={form.password} />
-      <input name="confirmPassword" type="password" placeholder="비밀번호 확인" onChange={handleChange} value={form.confirmPassword} />
-      
+      <input
+        name="name"
+        placeholder="이름"
+        onChange={handleChange}
+        value={form.name}
+      />
+
+      {/* 아이디 입력칸 내부 버튼 */}
+      <div className="input-with-button">
+        <input
+          name="id"
+          placeholder="아이디"
+          onChange={handleChange}
+          value={form.id}
+          aria-describedby="id-check-msg"
+        />
+        <button
+          type="button"
+          className={`id-check-btn ${idCheck.checked ? 'ok' : ''}`}
+          onClick={handleIdCheck}
+        >
+          중복 확인
+        </button>
+      </div>
+      {idCheck.message && (
+        <p id="id-check-msg" className={`check-message ${idCheck.checked ? 'success' : 'error'}`}>
+          {idCheck.message}
+        </p>
+      )}
+
+      <input
+        name="password"
+        type="password"
+        placeholder="비밀번호"
+        onChange={handleChange}
+        value={form.password}
+      />
+      <input
+        name="confirmPassword"
+        type="password"
+        placeholder="비밀번호 확인"
+        onChange={handleChange}
+        value={form.confirmPassword}
+      />
+
       <div className="row">
         <select name="school" onChange={handleChange} value={form.school}>
           <option value="">학교</option>
@@ -135,18 +153,31 @@ const handleIdCheck = async () => {
         </select>
         <select name="grade" onChange={handleChange} value={form.grade}>
           <option value="">학년</option>
-          {gradeOptions.map((grade, index) => (
-            <option key={index} value={grade}>{grade}</option>
+          {gradeOptions.map((g, i) => (
+            <option key={i} value={g}>{g}</option>
           ))}
         </select>
       </div>
-      
-      <input name="email" placeholder="이메일" onChange={handleChange} value={form.email} />
-      
-      <div className="checkbox">
-        <input type="checkbox" name="receiveEmails" onChange={handleChange} checked={form.receiveEmails} />
-        <label>복습 이메일 수신에 동의합니다.</label>
-      </div>
+
+      <input
+        name="email"
+        placeholder="이메일"
+        onChange={handleChange}
+        value={form.email}
+      />
+
+      {/* ✅ 백엔드로 실제 값이 연결되는 체크박스 */}
+      <label className="checkbox-row" htmlFor="receiveReminders">
+        <input
+          id="receiveReminders"
+          type="checkbox"
+          name="receiveReminders"
+          onChange={handleChange}
+          checked={form.receiveReminders}
+        />
+        <span>복습 이메일 수신에 동의합니다.</span>
+      </label>
+
       <button className="submit-btn" onClick={handleSubmit}>가입하기</button>
     </div>
   );
