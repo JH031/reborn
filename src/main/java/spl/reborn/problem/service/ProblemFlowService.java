@@ -102,10 +102,19 @@ public class ProblemFlowService {
 
         // ★★★★★ 추가: user_study 자동 저장
         // 제목 우선순위: mainConcept → subject → "제목 없음"
-        String contentTitle =
-                (problem.getMainConcept() != null && !problem.getMainConcept().isBlank()) ? problem.getMainConcept() :
-                        (problem.getSubject() != null && !problem.getSubject().isBlank()) ? problem.getSubject() :
-                                "제목 없음";
+        String subj = problem.getSubject();
+        String main = problem.getMainConcept();
+
+        String contentTitle;
+        if (subj != null && !subj.isBlank() && main != null && !main.isBlank()) {
+            contentTitle = subj.trim() + "_" + main.trim();   // 둘 다 있으면 "subject_mainconcept"
+        } else if (main != null && !main.isBlank()) {
+            contentTitle = main.trim();                       // main만 있으면 main
+        } else if (subj != null && !subj.isBlank()) {
+            contentTitle = subj.trim();                       // subject만 있으면 subject
+        } else {
+            contentTitle = "제목 없음";
+        }
 
         UserStudy study = new UserStudy();
         study.setUser(user);
