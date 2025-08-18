@@ -40,6 +40,8 @@ public class SecurityConfig {
                                 "/api/users/signup",
                                 "/api/users/login",
                                 "/api/users/find-id",
+                                "/api/users/check-id",
+                                "/api/users/check-email",
                                 "/api/password/send-link",
                                 "/api/password/verify-token",
                                 "/api/password/reset",

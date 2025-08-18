@@ -1,5 +1,9 @@
 package spl.reborn.user.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +24,21 @@ public class UserController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository; // ★ 추가
+
+    @GetMapping("/check-id")
+    public ResponseEntity<Void> checkId(@RequestParam String userid) {
+        boolean exists = userRepository.existsByUserid(userid.trim());
+        return exists ? ResponseEntity.ok().build()
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<Void> checkEmail(@RequestParam String email) {
+        boolean exists = userRepository.existsByEmail(email.trim());
+        return exists ? ResponseEntity.ok().build()
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignUpRequest request) {
