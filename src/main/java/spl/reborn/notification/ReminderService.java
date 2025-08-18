@@ -93,26 +93,14 @@ public class ReminderService {
     }
 
     /** 사용자 단위 기본 예약 생성(옵션) */
-    // ★★★ CHANGED: 이미지 인자는 받되 내부에서 사용하지 않음(호환용)
+// 오버로드 호환용 - 이미지 인자 버전
     public void createDefaultReminders(long userId, String contentTitle, String imageUrl) {
-        createDefaultReminders(userId, contentTitle); // 이미지 미사용
+        // no-op: 더 이상 기본 리마인더 만들지 않음
     }
 
-    // ★★★ ADDED: 이미지 없는 정식 구현
+    // 오버로드 호환용 - 이미지 없는 버전
     public void createDefaultReminders(long userId, String contentTitle) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
-        if (!user.isReceiveReminders()) return;
-
-        LocalDate base = LocalDate.now(KST);
-        String title = (contentTitle == null || contentTitle.isBlank()) ? "복습 알림" : contentTitle;
-
-        for (int d : OFFSETS) {
-            LocalDateTime dueAt = LocalDateTime.of(base.plusDays(d), DEFAULT_SEND_TIME);
-            // contentId = null (디폴트 예약)
-            // ★★★ CHANGED: Repository 시그니처에 맞게 imageUrl 제거
-            reminderRepository.upsert(user.getId(), null, title, d, dueAt);
-        }
+        // no-op: 더 이상 기본 리마인더 만들지 않음
     }
 
     /**
