@@ -277,7 +277,6 @@ export const AuthProvider = ({ children }) => {
             text: normalized.text || null,
             sender: 'ai',
             // turn=1: 서버가 user 텍스트를 저장하지 않으므로 모델 첫 카드에 원본이미지 보이도록
-            file: chat.turn === 1 ? (chat.imageUrl || data.originalImageUrl || null) : (chat.imageUrl || null),
             type: normalized.type,
             isActionable: normalized.isActionable || false,
             problems: normalized.problems || null,

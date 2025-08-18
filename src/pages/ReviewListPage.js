@@ -1,61 +1,120 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // ❗ useNavigate import
-import Header from '../components/Layout/Header';
+// src/pages/ReviewListPage.jsx
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/Layout/BottomNav';
 import FixedFrame from '../components/Layout/FixedFrame';
+import axios from 'axios';
 import './ReviewListPage.css';
 
-// API가 없으므로, 임시로 사용할 가짜 데이터
-const mockReviewProblems = [
-    {
-        problemId: 1,
-        subject: '수학',
-        concept: '사칙연산 혼합 계산',
-        imageUrl: 'https://via.placeholder.com/400x200.png?text=Problem+Image+1',
-        reviewTurn: 3,
-        daysAgo: 7,
-    },
-    {
-        problemId: 2,
-        subject: '코딩',
-        concept: '재귀 함수',
-        imageUrl: 'https://via.placeholder.com/400x200.png?text=Problem+Image+2',
-        reviewTurn: 1,
-        daysAgo: 1,
-    },
-];
+function todayYMD() {
+  const d = new Date();
+  const m = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+const OFFSETS = [1, 4, 7, 14, 30];
 
 const ReviewListPage = () => {
-    const navigate = useNavigate(); // ❗ navigate 함수 생성
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
 
-    return (
-        <div className="app-container">
-            <FixedFrame>
-                <Header />
-                <main className="review-list-content">
-                    <div className="review-list-header">
-                        {/* ❗ 뒤로 가기 버튼 추가 */}
-                        <button onClick={() => navigate(-1)} className="back-button">←</button>
-                        <h2>오늘의 복습</h2>
-                    </div>
-                    <p className="review-list-description">복습 주기에 맞춰 도착한 문제들이에요.</p>
-                    <div className="review-card-list">
-                        {mockReviewProblems.map(problem => (
-                            <Link to={`/review/${problem.problemId}`} key={problem.problemId} className="review-card">
-                                <div className="card-info">
-                                    <span className="card-subject">{problem.subject}</span>
-                                    <h3 className="card-concept">{problem.concept}</h3>
-                                    <p className="card-meta">{problem.reviewTurn}회차 복습 ({problem.daysAgo}일 전)</p>
-                                </div>
-                                <img src={problem.imageUrl} alt={problem.concept} className="card-thumbnail" />
-                            </Link>
-                        ))}
-                    </div>
-                </main>
-                <BottomNav />
-            </FixedFrame>
-        </div>
-    );
+  useEffect(() => {
+    const fetchDue = async () => {
+      try {
+        setLoading(true);
+        setErr('');
+        const token = localStorage.getItem('token');
+
+        const res = await axios.get('http://localhost:8080/api/reviews/due', {
+          params: { date: todayYMD(), includeOverdue: true },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const list = Array.isArray(res.data) ? res.data : [];
+        const today = new Date(todayYMD());
+
+        const normalized = list.map((it) => {
+          const due = it.nextReviewDate ? new Date(it.nextReviewDate) : today;
+          const diffDays = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+          const daysAgo = isNaN(diffDays) || diffDays < 0 ? 0 : diffDays;
+
+          const idx = Number(it.stageIndex ?? 1);
+          const reviewTurn = idx === 0 ? 1 : idx;
+          const stageDay = OFFSETS[reviewTurn - 1] ?? 1;
+
+          return {
+            reviewProgressId: it.reviewProgressId,
+            studyId: it.userStudyId,
+            title: it.contentTitle ?? '복습',
+            reviewTurn,
+            stageDay,
+            daysAgo,
+            imageUrl: it.imageUrl || null,
+          };
+        });
+
+        setItems(normalized);
+      } catch (e) {
+        console.error(e);
+        setErr('복습 목록을 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDue();
+  }, []);
+
+  return (
+    <div className="app-container">
+      <FixedFrame>
+        <header className="simple-header">
+          <button onClick={() => navigate(-1)} className="back-button">←</button>
+          <h1>오늘의 복습</h1>
+        </header>        
+        <main className="review-list-content">
+          {loading && <p className="review-list-description">불러오는 중…</p>}
+          {err && <p className="error-text">{err}</p>}
+          {!loading && !err && items.length === 0 && (
+            <p className="review-list-description">오늘 복습할 문제가 없어요.</p>
+          )}
+
+          <div className="review-card-list">
+            {items.map((item) => (
+              <Link
+                to={`/review/${item.studyId}`}
+                key={`${item.reviewProgressId}-${item.studyId}`}
+                className="review-card"
+                state={{
+                  studyId: item.studyId,
+                  reviewProgressId: item.reviewProgressId,
+                  imageUrl: item.imageUrl,
+                  reviewTurn: item.reviewTurn,
+                  stageDay: item.stageDay,
+                  title: item.title,
+                }}
+              >
+                <div className="card-info">
+                  <span className="card-subject">복습</span>
+                  <h3 className="card-concept">{item.title}</h3>
+                  <p className="card-meta">
+                    {item.reviewTurn}회차 복습 ({item.daysAgo}일 전)
+                  </p>
+                </div>
+                {item.imageUrl && (
+                  <img src={item.imageUrl} alt={item.title} className="card-thumbnail" />
+                )}
+              </Link>
+            ))}
+          </div>
+        </main>
+        <BottomNav />
+      </FixedFrame>
+    </div>
+  );
 };
 
 export default ReviewListPage;

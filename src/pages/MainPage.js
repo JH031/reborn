@@ -25,10 +25,20 @@ const MainPage = () => {
 
   return (
     <div className="app-container">
-      {isSidebarOpen && <div className="backdrop" onClick={() => setSidebarOpen(false)}></div>}
-      <ChatHistorySidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <FixedFrame>
+        {/* ★ FixedFrame 내부 전용 레이어: 사이드바/오버레이를 이 안에서만 표시 */}
+        <div className="frame-layer">
+          {isSidebarOpen && (
+            <div
+              className="frame-backdrop"
+              onClick={() => setSidebarOpen(false)}
+              aria-hidden
+            />
+          )}
+          <ChatHistorySidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
         <Header
           onLoginClick={() => setModalType('login')}
           onMenuClick={() => setSidebarOpen(!isSidebarOpen)}
@@ -88,8 +98,11 @@ const MainPage = () => {
           })}
         </main>
 
-        <QuestionInput onSendMessage={handleSendMessage} isFollowUp={!!problemId} />
+        <div className="qi-dock">
+          <QuestionInput onSendMessage={handleSendMessage} isFollowUp={!!problemId} />
+        </div>
         <BottomNav />
+        </div>
       </FixedFrame>
 
       {modalType && (

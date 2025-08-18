@@ -1,9 +1,66 @@
 /* src/components/Layout/BottomNav.css */
-.bottom-nav { /* BottomNav.js의 최상위 div에 이 클래스 적용 필요 */
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    height: 60px;
-    background-color: var(--primary-color, #FFC0CB);
-    flex-shrink: 0; /* 높이가 줄어들지 않도록 설정 */
+:root{
+  --brand:#e85a70;
+  --text:#4b5563;
+  --muted:#9ca3af;
+  --border:#eaeaea;
+
+  --frame-max: 450px;
+  --bn-height: 64px;                 /* nav 본체 높이 */
+  --bn-border: 1px;                  /* 위 보더 두께 */
+  --bn-pad: env(safe-area-inset-bottom);
+  /* nav의 실제 바깥높이(= 예약해야 하는 높이) */
+  --bn-outer: calc(var(--bn-height) + var(--bn-pad) + var(--bn-border));
 }
+
+/* ✅ BottomNav가 스스로 공간을 예약 */
+.bn-spacer{
+  height: var(--bn-outer);
+  pointer-events: none;
+}
+
+/* 고정 네비게이션 */
+.bottom-nav{
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+
+  width: min(100vw, var(--frame-max));
+  height: var(--bn-height);
+  padding: 0 12px var(--bn-pad);     /* 추가 8px 패딩 X */
+  box-sizing: border-box;
+  border-top: var(--bn-border) solid var(--border);
+  display: flex;
+  gap: 4px;
+  z-index: 900;                      /* 오버레이보다 낮게 */
+  background: #fff;                  /* minimal */
+}
+
+/* 스타일 */
+.bottom-nav.minimal{
+  background:#fff;
+  border-top:1px solid var(--border);
+}
+.bottom-nav.glass{
+  backdrop-filter:saturate(150%) blur(10px);
+  background:rgba(255,255,255,0.6);
+  border-top:1px solid rgba(0,0,0,0.06);
+}
+
+.bn-item{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:6px;
+  text-decoration:none;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+}
+.bn-item.active{ color:var(--brand); }
+
+.bn-icon{ width:22px; height:22px; }
+.bn-item:active .bn-icon{ transform:translateY(1px); }

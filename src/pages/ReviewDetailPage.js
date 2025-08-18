@@ -1,81 +1,119 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+// src/pages/ReviewDetailPage.jsx
+import React, { useMemo, useState } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/Layout/BottomNav';
 import FixedFrame from '../components/Layout/FixedFrame';
+import axios from 'axios';
 import './ReviewDetailPage.css';
 
-// 임시 데이터 (원래는 problemId로 API 호출해서 가져와야 함)
-const mockProblemDetail = {
-    problemId: 1,
-    imageUrl: 'https://via.placeholder.com/800x400.png?text=Problem+Image+1',
-    correctAnswer: '정답은 1입니다. 나눗셈을 먼저 계산해야 합니다.',
-};
-
 const ReviewDetailPage = () => {
-    const { problemId } = useParams(); // URL에서 problemId 가져오기
-    const navigate = useNavigate();
-    const [isAnswerVisible, setAnswerVisible] = useState(false);
-    const [confidence, setConfidence] = useState('');
+  const { studyId: paramStudyId } = useParams();
+  const { state } = useLocation();
+  const navigate = useNavigate();
 
-    const handleNextProblem = () => {
-        if (!confidence) {
-            alert('자기 확신 체크를 먼저 해주세요.');
-            return;
-        }
-        // 실제로는 다음 문제로 이동하는 로직이 필요
-        alert(`${problemId}번 문제 복습 완료! (${confidence} 선택)`);
-        navigate('/mypage/review'); // 목록으로 돌아가기
+  const [confidence, setConfidence] = useState('');
+  const [posting, setPosting] = useState(false);
+
+
+  const payload = useMemo(() => {
+    return {
+      studyId: state?.studyId ?? Number(paramStudyId),
+      imageUrl: state?.imageUrl ?? null,
+      reviewTurn: state?.reviewTurn ?? 1,
+      stageDay: state?.stageDay ?? 1,
+      title: state?.title ?? `학습 ${paramStudyId}`,
     };
+  }, [state, paramStudyId]);
 
- return (
-        <div className="app-container">
-            <FixedFrame>
-                {/* ❗ Header 대신 간단한 제목과 뒤로가기 버튼을 넣습니다. */}
-                <header className="simple-header">
-                    <button onClick={() => navigate(-1)} className="back-button">←</button>
-                    <h1>문제 다시 풀기</h1>
-                </header>
-                <main className="review-detail-content">
-                    <div className="problem-image-container">
-                        <img src={mockProblemDetail.imageUrl} alt={`문제 ${problemId}`} />
-                    </div>
-                    <div className="review-controls">
-                        <button 
-                            className="answer-toggle-btn"
-                            onClick={() => setAnswerVisible(!isAnswerVisible)}
-                        >
-                            {isAnswerVisible ? '정답 숨기기' : '정답 확인하기'}
-                        </button>
+  const handleNextProblem = async () => {
+    if (!payload.studyId) {
+      alert('필요한 정보가 부족합니다.');
+      navigate(-1);
+      return;
+    }
+    if (!confidence) {
+      alert('자기 확신 체크를 먼저 해주세요.');
+      return;
+    }
 
-                        {isAnswerVisible && (
-                            <div className="answer-box">
-                                <p>{mockProblemDetail.correctAnswer}</p>
-                            </div>
-                        )}
+    const result = confidence === '확실함' ? 'UNDERSTOOD' : 'NOT_UNDERSTOOD';
 
-                        <div className="confidence-check">
-                            <h4>자기 확신 체크</h4>
-                            <div className="radio-group">
-                                <label className={confidence === '확실함' ? 'checked' : ''}>
-                                    <input type="radio" name="confidence" value="확실함" onChange={(e) => setConfidence(e.target.value)} />
-                                    확실함
-                                </label>
-                                <label className={confidence === '모름' ? 'checked' : ''}>
-                                    <input type="radio" name="confidence" value="모름" onChange={(e) => setConfidence(e.target.value)} />
-                                    모름
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <button className="next-problem-btn" onClick={handleNextProblem}>
-                            다음 문제로
-                        </button>
-                    </div>
-                </main>
-                <BottomNav />
-            </FixedFrame>
-        </div>
-    );
+    try {
+      setPosting(true);
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:8080/api/studies/${payload.studyId}/review`,
+        {},
+        {
+          params: { stageDay: payload.stageDay, result },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert(`복습 완료! (${confidence} 선택)`);
+      navigate('/mypage/review');
+    } catch (e) {
+      console.error(e);
+      alert('이해도 결과 전송에 실패했습니다.');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <FixedFrame>
+        <header className="simple-header">
+          <button onClick={() => navigate(-1)} className="back-button">←</button>
+          <h1>문제 다시 풀기</h1>
+        </header>
+
+        <main className="review-detail-content">
+          {payload.imageUrl ? (
+            <div className="problem-image-container">
+              <img src={payload.imageUrl} alt={payload.title} />
+            </div>
+          ) : (
+            <p className="review-list-description">이미지가 없어요. 학습 제목: {payload.title}</p>
+          )}
+
+          <div className="review-controls">
+            <div className="confidence-check">
+              <h4>자기 확신 체크</h4>
+              <div className="radio-group">
+                <label className={confidence === '확실함' ? 'checked' : ''}>
+                  <input
+                    type="radio"
+                    name="confidence"
+                    value="확실함"
+                    onChange={(e) => setConfidence(e.target.value)}
+                  />
+                  확실함
+                </label>
+                <label className={confidence === '모름' ? 'checked' : ''}>
+                  <input
+                    type="radio"
+                    name="confidence"
+                    value="모름"
+                    onChange={(e) => setConfidence(e.target.value)}
+                  />
+                  모름
+                </label>
+              </div>
+            </div>
+
+            <button
+              className="next-problem-btn"
+              onClick={handleNextProblem}
+              disabled={posting}
+            >
+              {posting ? '전송 중…' : '다음 문제로'}
+            </button>
+          </div>
+        </main>
+
+        <BottomNav />
+      </FixedFrame>
+    </div>
+  );
 };
 
 export default ReviewDetailPage;
