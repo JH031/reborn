@@ -6,7 +6,7 @@
   --bg:#fff; /* 흰 배경 */
 }
 
-/* 메인 래퍼: BottomNav에 가리지 않도록 하단 패딩 */
+/* 메인 래퍼 */
 .profile-plain-wrap{
   flex:1;
   display:flex;
@@ -18,7 +18,7 @@
   box-sizing:border-box;
 }
 
-/* 오류 배너만 표시 */
+/* 오류 배너 */
 .banner{
   width:100%;
   max-width:520px;
@@ -97,7 +97,7 @@
   color:#777;
 }
 
-/* 버튼 (비번변경 페이지와 동일 스타일) */
+/* 버튼 */
 .btn-primary{
   width:100%;
   padding:14px;
@@ -114,8 +114,9 @@
 .btn-primary:active{ transform:translateY(1px); }
 .btn-primary:disabled{ background:#ccc; cursor:not-allowed; }
 
-/* 상단 간단 헤더 재사용 */
+/* 헤더 + 뒤로가기 버튼 */
 .simple-header{
+  position: relative;
   display:flex;
   align-items:center;
   padding:15px 20px;
@@ -130,9 +131,36 @@
   left:50%;
   transform:translateX(-50%);
 }
+
+/* 🔙 원형 뒤로가기 버튼 */
 .back-button{
-  background:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
   border:none;
-  font-size:22px;
+  border-radius:50%;
+  background:#f6f6f6;
+  color:#333;
   cursor:pointer;
+  transition: background-color .2s ease, transform .12s ease, box-shadow .2s ease;
+  outline: none;
+}
+.back-button:hover{
+  background:#ffe5ea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(232,90,112,0.18);
+}
+.back-button:active{
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(232,90,112,0.12);
+}
+.back-button:focus-visible{
+  box-shadow: 0 0 0 3px rgba(232,90,112,0.25);
+}
+.back-icon{
+  display:block;
+  width:20px;
+  height:20px;
 }

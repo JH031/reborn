@@ -1,4 +1,3 @@
-// src/pages/ReviewDetailPage.jsx
 import React, { useMemo, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/Layout/BottomNav';
@@ -13,7 +12,6 @@ const ReviewDetailPage = () => {
 
   const [confidence, setConfidence] = useState('');
   const [posting, setPosting] = useState(false);
-
 
   const payload = useMemo(() => {
     return {
@@ -41,7 +39,8 @@ const ReviewDetailPage = () => {
     try {
       setPosting(true);
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:8080/api/studies/${payload.studyId}/review`,
+      await axios.post(
+        `http://localhost:8080/api/studies/${payload.studyId}/review`,
         {},
         {
           params: { stageDay: payload.stageDay, result },
@@ -62,7 +61,32 @@ const ReviewDetailPage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          <button onClick={() => navigate(-1)} className="back-button">←</button>
+          {/* 🔙 원형 뒤로가기 버튼 */}
+          <button
+            onClick={() => navigate(-1)}
+            className="back-button"
+            aria-label="뒤로가기"
+            title="뒤로가기"
+            type="button"
+          >
+            <svg
+              className="back-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M15 6L9 12L15 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <h1>문제 다시 풀기</h1>
         </header>
 
@@ -72,7 +96,9 @@ const ReviewDetailPage = () => {
               <img src={payload.imageUrl} alt={payload.title} />
             </div>
           ) : (
-            <p className="review-list-description">이미지가 없어요. 학습 제목: {payload.title}</p>
+            <p className="review-list-description">
+              이미지가 없어요. 학습 제목: {payload.title}
+            </p>
           )}
 
           <div className="review-controls">

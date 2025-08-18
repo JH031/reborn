@@ -40,7 +40,6 @@ const MyPage = () => {
             <div className="menu-section">
               <h3>계정 관리</h3>
               <Link to="/mypage/edit-profile" className="menu-item">회원정보 수정</Link>
-              <Link to="/mypage/change-password" className="menu-item">비밀번호 변경</Link>
               <div className="menu-item" onClick={logout}>로그아웃</div>
             </div>
           </div>

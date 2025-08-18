@@ -1,4 +1,3 @@
-// src/pages/ChangePasswordPage.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import BottomNav from '../components/Layout/BottomNav';
@@ -55,11 +54,8 @@ const ChangePasswordPage = () => {
         body: JSON.stringify({ userid, email }),
       });
       const data = await parseJsonIfAny(resp);
-      if (resp.ok) {
-        setStep(2);
-      } else {
-        setError((data && data.message) || '아이디/이메일을 확인해주세요.');
-      }
+      if (resp.ok) setStep(2);
+      else setError((data && data.message) || '아이디/이메일을 확인해주세요.');
     } catch {
       setError('서버 통신 중 오류가 발생했습니다.');
     } finally {
@@ -78,11 +74,8 @@ const ChangePasswordPage = () => {
         body: JSON.stringify({ token }),
       });
       const data = await parseJsonIfAny(resp);
-      if (resp.ok) {
-        setStep(3);
-      } else {
-        setError((data && data.message) || '유효하지 않은 토큰입니다.');
-      }
+      if (resp.ok) setStep(3);
+      else setError((data && data.message) || '유효하지 않은 토큰입니다.');
     } catch {
       setError('서버 통신 중 오류가 발생했습니다.');
     } finally {
@@ -105,16 +98,18 @@ const ChangePasswordPage = () => {
         body: JSON.stringify({ token, newPassword }),
       });
       const data = await parseJsonIfAny(resp);
-      if (resp.ok) {
-        setStep(4);
-      } else {
-        setError((data && data.message) || '비밀번호 변경에 실패했습니다.');
-      }
+      if (resp.ok) setStep(4);
+      else setError((data && data.message) || '비밀번호 변경에 실패했습니다.');
     } catch {
       setError('서버 통신 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ←/완료 버튼: 로그인 모달이 열리도록 메인으로 이동(+쿼리)
+  const goLoginModal = () => {
+    navigate('/?auth=login');
   };
 
   const helperByStep = {
@@ -128,8 +123,33 @@ const ChangePasswordPage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          <button onClick={() => navigate(-1)} className="back-button">←</button>
-          <h1>비밀번호 변경</h1>
+          {/* 🔙 원형 뒤로가기 버튼 */}
+          <button
+            onClick={goLoginModal}
+            className="back-button"
+            aria-label="뒤로가기"
+            title="뒤로가기"
+            type="button"
+          >
+            <svg
+              className="back-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M15 6L9 12L15 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <h1>비밀번호 재설정</h1>
         </header>
 
         <main className="pw-plain-wrap">
@@ -138,7 +158,6 @@ const ChangePasswordPage = () => {
           <div className="plain-hero">
             <div className="lock-badge" aria-hidden>🔒</div>
             <p className="hero-text">{helperByStep[step]}</p>
-            {/* role="list" 제거 */}
             <ol className="stepper">
               <li className={`step ${step >= 1 ? 'active' : ''}`}>이메일</li>
               <li className={`step ${step >= 2 ? 'active' : ''}`}>토큰</li>
@@ -232,8 +251,9 @@ const ChangePasswordPage = () => {
             {step === 4 && (
               <div className="done">
                 <h3>비밀번호 변경 완료</h3>
-                <button className="btn-primary" onClick={() => navigate('/mypage')}>
-                  마이페이지로
+                <button className="btn-primary" onClick={goLoginModal}>
+                  <span className="icon">🔑</span>
+                  로그인으로
                 </button>
               </div>
             )}

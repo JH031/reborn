@@ -21,6 +21,7 @@ function App() {
           <Route path="/review/:problemId" element={<ReviewDetailPage />} />
           <Route path="/mypage/edit-profile" element={<EditProfilePage />} />
           <Route path="/mypage/change-password" element={<ChangePasswordPage />} />
+          <Route path="/reset-password" element={<ChangePasswordPage />} />
         </Routes>
       </Router>
     </AuthProvider>

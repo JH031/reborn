@@ -37,7 +37,7 @@ const EditProfilePage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // ✅ 성공 시 컨텍스트 갱신 (네 컨텍스트 시그니처에 맞춰 유지)
+      // ✅ 성공 시 컨텍스트 갱신
       const updatedUser = { ...user, ...response.data };
       login({ token, ...updatedUser });
 
@@ -55,14 +55,39 @@ const EditProfilePage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          <button onClick={() => navigate(-1)} className="back-button">←</button>
+          {/* 🔙 원형 뒤로가기 버튼 */}
+          <button
+            onClick={() => navigate(-1)}
+            className="back-button"
+            aria-label="뒤로가기"
+            title="뒤로가기"
+            type="button"
+          >
+            <svg
+              className="back-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M15 6L9 12L15 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <h1>회원정보 수정</h1>
         </header>
 
         <main className="profile-plain-wrap">
           {error && <p className="banner banner--error">{error}</p>}
 
-          {/* HERO (흰 배경, 카드 없음) */}
+          {/* HERO */}
           <div className="plain-hero">
             <div className="avatar-badge" aria-hidden>👤</div>
             <p className="hero-text">

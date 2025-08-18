@@ -8,18 +8,27 @@ import ChatHistorySidebar from '../components/Layout/ChatHistorySidebar';
 import FixedFrame from '../components/Layout/FixedFrame';
 import { useAuth } from '../context/AuthContext';
 import SimilarProblems from '../components/SimilarProblems';
+import { useLocation } from 'react-router-dom';
 import './MainPage.css';
 
 const MainPage = () => {
   const [modalType, setModalType] = useState(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-
   const { messages, problemId, handleSendMessage, handleRequestSimilarProblems } = useAuth();
+  const location = useLocation();
+
 
   useEffect(() => {
     const chatArea = document.getElementById('chat-messages');
     if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('auth') === 'login') {
+      setModalType('login');
+    }
+  }, [location.search]);
 
   const getInitial = (sender) => (sender === 'user' ? '나' : 'AI');
 
