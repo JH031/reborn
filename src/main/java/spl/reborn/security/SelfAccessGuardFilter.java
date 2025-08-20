@@ -31,7 +31,6 @@ public class SelfAccessGuardFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String method = request.getMethod();
 
-        // 0) 아직 인증 전이면 이 필터에서 막지 않음
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             chain.doFilter(request, response);
