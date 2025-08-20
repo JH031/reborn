@@ -20,8 +20,7 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
 
-    private final PwEmailService pwEmailService; // ★ 여기서 주입받음
-
+    private final PwEmailService pwEmailService;
     private static final int TOKEN_BYTES = 32;
     private static final int EXPIRE_MINUTES = 30;
 
@@ -47,7 +46,7 @@ public class PasswordResetService {
                 %s
                 """.formatted(EXPIRE_MINUTES, resetUrl);
 
-        // ★ 비밀번호 재설정 전용 메일 발송
+        //  비밀번호 재설정 전용 메일 발송
         pwEmailService.sendText(user.getEmail(), subject, body);
 
         System.out.println("[RESET] email=" + user.getEmail() + ", token=" + token + ", url=" + resetUrl);
@@ -71,7 +70,7 @@ public class PasswordResetService {
         }
 
         User user = prt.getUser();
-        user.setPassword(newPassword); // 요청에 따라 평문 저장
+        user.setPassword(newPassword);
 
         prt.setUsed(true);
         tokenRepository.save(prt);
