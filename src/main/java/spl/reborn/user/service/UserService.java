@@ -20,17 +20,17 @@ public class UserService {
 
     @Transactional
     public void registerUser(SignUpRequest request) {
-        // 1) 아이디 중복 체크
+        // 아이디 중복 체크
         if (userRepository.existsByUserid(request.getUserid())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
-        // 2) 이메일 중복 체크
+        // 이메일 중복 체크
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
-        // 3) 사용자 생성 (비밀번호 암호화 X)
+        // 3) 사용자 생성
         User user = new User();
         user.setName(request.getName());
         user.setUserid(request.getUserid());
@@ -42,7 +42,7 @@ public class UserService {
 
         userRepository.save(user);
 
-        // 4) 리마인더 동의 시 기본 스케줄 생성
+        //
         if (user.isReceiveReminders()) {
             reminderService.createDefaultReminders(user.getId(), "복습 알림", null);
         }
