@@ -1,4 +1,3 @@
-// src/components/AuthModal/LoginForm.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -55,7 +54,6 @@ const LoginForm = ({ switchType, onClose }) => {
   };
 
   const goResetPassword = () => {
-    // 모달 닫고 비밀번호 재설정 페이지로 이동
     if (onClose) onClose();
     navigate('/reset-password');
   };

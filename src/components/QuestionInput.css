@@ -31,9 +31,8 @@
     line-height: 20px;
 }
 #file-input {
-    display: none; /* 실제 input은 숨김 */
+    display: none; 
 }
-/* --- 첫 질문 --- */
 .initial-prompt-area {
     text-align: center;
 }
@@ -60,9 +59,8 @@
     color: #e85a70;
     font-weight: 500;
     cursor: pointer;
-    white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
+    white-space: nowrap; 
 }
-/* --- 추가 질문 --- */
 .follow-up-form {
     display: flex;
     align-items: center;

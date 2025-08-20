@@ -1,11 +1,8 @@
-// src/components/AuthModal/AuthModal.js
-
 import React from 'react';
 import './AuthModal.css';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
-import FindIdForm from './FindIdForm'; // ★ 추가
-
+import FindIdForm from './FindIdForm'; 
 
 const AuthModal = ({ type, onClose, switchType }) => {
   return (
@@ -17,7 +14,7 @@ const AuthModal = ({ type, onClose, switchType }) => {
         </button>
         {type === 'login' && <LoginForm switchType={switchType} onClose={onClose} />}
         {type === 'signup' && <SignupForm />}
-        {type === 'findId' && <FindIdForm switchType={switchType} />} {/* ★ 추가 */}
+        {type === 'findId' && <FindIdForm switchType={switchType} />} 
       </div>
     </>
   );

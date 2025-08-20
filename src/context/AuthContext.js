@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
@@ -49,8 +48,6 @@ const isSystemActionUserText = (txt) => {
   if (!txt) return false;
   const t = String(txt).trim();
 
-  // 앞부분이 '유사 문제' 또는 '유사문제'로 시작하고,
-  // 이어서 '생성/요청/만들어/주세요/봐줘/보기' 같은 액션 동사가 올 때만 숨김
   return /^(유사\s*문제|유사문제)\s*(\d+\s*개\s*)?(생성|요청|만들어|주세요|보기|봐줘)/.test(t);
 };
 
@@ -188,12 +185,11 @@ export const AuthProvider = ({ children }) => {
       if (!response.ok) throw new Error(`API 요청 실패: ${response.status}`);
       const result = await response.json();
 
-      // ✅ 최초 problemId가 생성된 순간, 첫 사용자 말풍선 메타를 캐시
       if (!problemId && result.problemId) {
         setProblemId(result.problemId);
         try {
           const firstUserText = displayTextForUser || '[문제 업로드]';
-          const firstUserImage = result.imageUrl || (userMessage.file || null); // 서버 대표 이미지 우선
+          const firstUserImage = result.imageUrl || (userMessage.file || null); 
           const meta = { firstUserText, firstUserImage, savedAt: Date.now() };
           localStorage.setItem(`chatMeta:${result.problemId}`, JSON.stringify(meta));
         } catch (_) {}
@@ -276,7 +272,6 @@ export const AuthProvider = ({ children }) => {
             turn: chat.turn,
             text: normalized.text || null,
             sender: 'ai',
-            // turn=1: 서버가 user 텍스트를 저장하지 않으므로 모델 첫 카드에 원본이미지 보이도록
             type: normalized.type,
             isActionable: normalized.isActionable || false,
             problems: normalized.problems || null,
@@ -286,7 +281,6 @@ export const AuthProvider = ({ children }) => {
         return items;
       });
 
-      // 연속 중복 제거
       const deduped = [];
       for (const m of transformed) {
         const last = deduped[deduped.length - 1];
@@ -300,7 +294,6 @@ export const AuthProvider = ({ children }) => {
         deduped.push(m);
       }
 
-      // turn=1 사용자 말풍선 없으면 로컬 캐시로 복원
       const hasFirstUserTurn = deduped.some(m => m.sender === 'user' && m.turn === 1);
       let finalMessages = deduped;
       if (!hasFirstUserTurn) {

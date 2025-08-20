@@ -107,7 +107,6 @@ const ChangePasswordPage = () => {
     }
   };
 
-  // ←/완료 버튼: 로그인 모달이 열리도록 메인으로 이동(+쿼리)
   const goLoginModal = () => {
     navigate('/?auth=login');
   };
@@ -123,7 +122,6 @@ const ChangePasswordPage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          {/* 🔙 원형 뒤로가기 버튼 */}
           <button
             onClick={goLoginModal}
             className="back-button"

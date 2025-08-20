@@ -1,4 +1,3 @@
-// src/components/Layout/BottomNav.jsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import './BottomNav.css';
@@ -20,7 +19,6 @@ const IconUser = ({ className }) => (
 export default function BottomNav({ variant = 'minimal' }) {
   return (
     <>
-      {/* ★ 페이지 여백 자동 예약 */}
       <div className="bn-spacer" aria-hidden="true" />
       <nav className={`bottom-nav ${variant}`}>
         <NavLink to="/" end className={({ isActive }) => `bn-item ${isActive ? 'active' : ''}`}>

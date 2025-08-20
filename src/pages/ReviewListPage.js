@@ -26,7 +26,6 @@ const ReviewListPage = () => {
         setLoading(true);
         setErr('');
 
-        // 1) 토큰 읽기
         const token =
           localStorage.getItem('token') ||
           localStorage.getItem('accessToken') ||
@@ -37,7 +36,6 @@ const ReviewListPage = () => {
           return;
         }
 
-        // 2) API 호출
         const res = await axios.get('http://localhost:8080/api/reviews/due', {
           params: { date: todayYMD(), includeOverdue: true },
           headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +84,6 @@ const ReviewListPage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          {/* 🔙 원형 뒤로가기 버튼 */}
           <button
             onClick={() => navigate(-1)}
             className="back-button"

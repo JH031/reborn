@@ -13,7 +13,6 @@ const SignupForm = () => {
     school: '',
     grade: '',
     email: '',
-    // ✅ 백엔드 키와 동일한 이름으로 관리
     receiveReminders: false,
   });
 
@@ -71,7 +70,6 @@ const SignupForm = () => {
 
     const schoolMapping = { '초등': 'ELEMENTARY', '중등': 'MIDDLE', '고등': 'HIGH' };
 
-    // ✅ Swagger 스키마에 맞춘 페이로드
     const apiData = {
       userid: form.id,
       name: form.name,
@@ -106,7 +104,6 @@ const SignupForm = () => {
         value={form.name}
       />
 
-      {/* 아이디 입력칸 내부 버튼 */}
       <div className="input-with-button">
         <input
           name="id"
@@ -166,7 +163,6 @@ const SignupForm = () => {
         value={form.email}
       />
 
-      {/* ✅ 백엔드로 실제 값이 연결되는 체크박스 */}
       <label className="checkbox-row" htmlFor="receiveReminders">
         <input
           id="receiveReminders"

@@ -61,7 +61,6 @@ const ReviewDetailPage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          {/* 🔙 원형 뒤로가기 버튼 */}
           <button
             onClick={() => navigate(-1)}
             className="back-button"

@@ -1,4 +1,3 @@
-// src/pages/MyPage.js
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Layout/Header';
@@ -6,12 +5,12 @@ import BottomNav from '../components/Layout/BottomNav';
 import FixedFrame from '../components/Layout/FixedFrame';
 import { useAuth } from '../context/AuthContext';
 import ChatHistorySidebar from '../components/Layout/ChatHistorySidebar';
-import AuthModal from '../components/AuthModal/AuthModal'; // ★ 모달 import
+import AuthModal from '../components/AuthModal/AuthModal'; 
 import './MyPage.css';
 
 const MyPage = () => {
   const { user, logout } = useAuth();
-  const [modalType, setModalType] = useState(null); // 'login' | 'signup' | null
+  const [modalType, setModalType] = useState(null); 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   
 
@@ -23,7 +22,7 @@ const MyPage = () => {
         <Header 
             onLoginClick={() => setModalType('login')} 
             onMenuClick={() => setSidebarOpen((v) => !v)}
-            /> {/* ★ prop 전달 */}
+            />
         
         <main className="mypage-content">
           <div className="profile-header">
@@ -47,7 +46,6 @@ const MyPage = () => {
         <BottomNav />
       </FixedFrame>
 
-      {/* ★ 모달 조건부 렌더 */}
       {modalType && (
         <AuthModal
           type={modalType}

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import './Header.css';
 
 const Header = ({ onLoginClick, onMenuClick }) => {
-  const { user } = useAuth(); // ✅ logout 제거 (경고 해결)
+  const { user } = useAuth(); 
 
   return (
     <div className="header">

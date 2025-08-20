@@ -10,7 +10,6 @@ const ChatHistorySidebar = ({ isOpen, onClose }) => {
         if (isOpen && user && token) {
             const fetchChatList = async () => {
                 try {
-                    // ❗ API 경로를 '/api/studies'에서 '/api/problems'로 수정합니다.
                     const response = await fetch(`http://localhost:8080/api/problems?userId=${user.id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -28,7 +27,7 @@ const ChatHistorySidebar = ({ isOpen, onClose }) => {
 
     const handleChatClick = (problemId) => {
         if (problemId === 'new') {
-            startNewChat(); // 새 대화 시작 함수 호출
+            startNewChat(); 
         } else {
             loadChatHistory(problemId); // 기존 대화 불러오기
         }

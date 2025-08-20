@@ -37,7 +37,6 @@ const EditProfilePage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // ✅ 성공 시 컨텍스트 갱신
       const updatedUser = { ...user, ...response.data };
       login({ token, ...updatedUser });
 
@@ -55,7 +54,6 @@ const EditProfilePage = () => {
     <div className="app-container">
       <FixedFrame>
         <header className="simple-header">
-          {/* 🔙 원형 뒤로가기 버튼 */}
           <button
             onClick={() => navigate(-1)}
             className="back-button"
@@ -87,7 +85,6 @@ const EditProfilePage = () => {
         <main className="profile-plain-wrap">
           {error && <p className="banner banner--error">{error}</p>}
 
-          {/* HERO */}
           <div className="plain-hero">
             <div className="avatar-badge" aria-hidden>👤</div>
             <p className="hero-text">
@@ -95,7 +92,6 @@ const EditProfilePage = () => {
             </p>
           </div>
 
-          {/* BODY */}
           <div className="plain-body">
             <form onSubmit={handleSubmit} className="form">
               <div className="form-group">

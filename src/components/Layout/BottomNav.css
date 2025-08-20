@@ -1,4 +1,3 @@
-/* src/components/Layout/BottomNav.css */
 :root{
   --brand:#e85a70;
   --text:#4b5563;
@@ -6,20 +5,17 @@
   --border:#eaeaea;
 
   --frame-max: 450px;
-  --bn-height: 64px;                 /* nav 본체 높이 */
-  --bn-border: 1px;                  /* 위 보더 두께 */
+  --bn-height: 64px;                
+  --bn-border: 1px;                
   --bn-pad: env(safe-area-inset-bottom);
-  /* nav의 실제 바깥높이(= 예약해야 하는 높이) */
   --bn-outer: calc(var(--bn-height) + var(--bn-pad) + var(--bn-border));
 }
 
-/* ✅ BottomNav가 스스로 공간을 예약 */
 .bn-spacer{
   height: var(--bn-outer);
   pointer-events: none;
 }
 
-/* 고정 네비게이션 */
 .bottom-nav{
   position: fixed;
   left: 50%;
@@ -28,16 +24,15 @@
 
   width: min(100vw, var(--frame-max));
   height: var(--bn-height);
-  padding: 0 12px var(--bn-pad);     /* 추가 8px 패딩 X */
+  padding: 0 12px var(--bn-pad);     
   box-sizing: border-box;
   border-top: var(--bn-border) solid var(--border);
   display: flex;
   gap: 4px;
-  z-index: 900;                      /* 오버레이보다 낮게 */
-  background: #fff;                  /* minimal */
+  z-index: 900;                     
+  background: #fff;                 
 }
 
-/* 스타일 */
 .bottom-nav.minimal{
   background:#fff;
   border-top:1px solid var(--border);

@@ -1,12 +1,9 @@
-import React, { useState } from 'react'; // ❗ 1. { useState } 추가
+import React, { useState } from 'react'; 
 import './QuestionInput.css';
 
-// ❗ 이제 QuestionInput은 onSendMessage와 isFollowUp prop을 다시 받습니다.
 const QuestionInput = ({ onSendMessage, isFollowUp }) => {
-    // 공통 상태
     const [file, setFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
-    // 추가 질문용 상태
     const [prompt, setPrompt] = useState('');
 
      const handleFileChange = (e) => {
@@ -24,22 +21,19 @@ const QuestionInput = ({ onSendMessage, isFollowUp }) => {
         if (fileInput) fileInput.value = '';
     };
 
-    // 1. 첫 질문 (옵션 버튼) 전송 핸들러
     const handleInitialSend = (option) => {
         if (!file) {
             alert('먼저 문제 사진을 첨부해주세요.');
             return;
         }
-        // 첫 질문 시에는 사용자 텍스트가 없으므로 prompt는 '' (빈 문자열)로 전달
         onSendMessage('', file, option);
         removeImage();
     };
 
-    // 2. 추가 질문 전송 핸들러
     const handleFollowUpSend = (e) => {
         e.preventDefault();
         if (!prompt && !file) return;
-        onSendMessage(prompt, file, null); // 추가 질문 시 option은 null
+        onSendMessage(prompt, file, null); 
         setPrompt('');
         removeImage();
     };
@@ -54,7 +48,6 @@ const QuestionInput = ({ onSendMessage, isFollowUp }) => {
             )}
 
             {isFollowUp ? (
-                // --- 2. 추가 질문용 입력창 ---
                 <form className="follow-up-form" onSubmit={handleFollowUpSend}>
                     <label htmlFor="file-input" className="file-label">📎</label>
                     <input id="file-input" type="file" accept="image/*" onChange={handleFileChange} />
@@ -68,7 +61,6 @@ const QuestionInput = ({ onSendMessage, isFollowUp }) => {
                     <button type="submit" className="send-button">전송</button>
                 </form>
             ) : (
-                // --- 1. 첫 질문용 입력창 ---
                 <div className="initial-prompt-area">
                     <label htmlFor="file-input" className="file-label-large">
                         {file ? '사진이 첨부되었습니다. 아래 옵션을 선택하세요.' : '📎 사진을 첨부하여 질문을 시작하세요'}

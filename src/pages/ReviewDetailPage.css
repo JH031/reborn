@@ -77,7 +77,6 @@
     cursor: pointer;
 }
 
-/* 헤더 + 뒤로가기 버튼 */
 .simple-header {
     position: relative;
     display:flex;

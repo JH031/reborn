@@ -26,9 +26,8 @@
     border-bottom: 1px solid #eee;
 }
 
-/* 공통 메뉴 아이템 스타일 */
 .menu-item {
-    display: block;              /* 크기 맞추기 */
+    display: block;             
     padding: 15px 10px;
     font-size: 16px;
     background-color: #fff;
@@ -37,12 +36,11 @@
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     transition: color 0.2s ease, background-color 0.2s ease;
-    text-decoration: none;       /* 밑줄 제거 */
-    color: #333;                 /* 기본 글자색 */
+    text-decoration: none;      
+    color: #333;                
 }
 
-/* hover 시 글자 색상만 변경 */
 .menu-item:hover {
-    color: #e85a70;   /* 분홍색 포인트 */
-    background-color: #fff; /* 배경은 그대로 */
+    color: #e85a70;   
+    background-color: #fff; 
 }

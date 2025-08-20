@@ -1,4 +1,3 @@
-// src/pages/MainPage.jsx
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Layout/Header';
 import BottomNav from '../components/Layout/BottomNav';
@@ -35,7 +34,6 @@ const MainPage = () => {
   return (
     <div className="app-container">
       <FixedFrame>
-        {/* ★ FixedFrame 내부 전용 레이어: 사이드바/오버레이를 이 안에서만 표시 */}
         <div className="frame-layer">
           {isSidebarOpen && (
             <div
@@ -62,7 +60,6 @@ const MainPage = () => {
                 key={msg.id}
                 className={`message-row ${isUser ? 'outgoing' : 'incoming'}`}
               >
-                {/* 아바타 (좌: AI / 우: USER) */}
                 {!isUser && (
                   <div className="avatar avatar-ai" aria-hidden>
                     {getInitial(msg.sender)}
@@ -71,12 +68,10 @@ const MainPage = () => {
 
                 {/* 말풍선 */}
                 <div className={`bubble ${isUser ? 'bubble-user' : 'bubble-ai'}`}>
-                  {/* 이미지가 있을 경우 (문제 이미지 / 첨부 이미지) */}
                   {msg.file && (
                     <img src={msg.file} alt="첨부 이미지" className="bubble-image" />
                   )}
 
-                  {/* 메시지 타입별 내용 */}
                  {msg.type === 'similar' ? (
                    <SimilarProblems problems={msg.problems || []} />
                  ) : (
@@ -89,7 +84,6 @@ const MainPage = () => {
                   ))
                 )}
 
-                  {/* 액션 버튼 (첫 분석 답변에만) */}
                   {msg.isActionable && (
                     <div className="action-buttons">
                       <button onClick={handleRequestSimilarProblems}>유사 문제</button>
