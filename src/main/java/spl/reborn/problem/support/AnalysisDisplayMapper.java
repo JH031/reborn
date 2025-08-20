@@ -24,12 +24,10 @@ public final class AnalysisDisplayMapper {
                 case FULL_SOLUTION -> buildFullSolution(r);
                 case FIND_MY_ERROR -> buildFindMyError(r);
             };
-            // null/빈 항목 제거
             m.entrySet().removeIf(e -> isEmpty(e.getValue()));
             if (m.isEmpty()) return Map.of("feedback", text(r, "feedback"));
             return m;
         } catch (Exception e) {
-            // 파싱 실패 시 'feedback' 또는 원문 요약
             return Map.of("feedback", "응답 파싱 실패. 원문 일부: " + cleaned.substring(0, Math.min(200, cleaned.length())));
         }
     }
@@ -71,7 +69,6 @@ public final class AnalysisDisplayMapper {
         return m;
     }
 
-    // ---------- helpers ----------
     private static String stripCodeFence(String s) {
         String t = s.trim();
         if (t.startsWith("```")) {
@@ -113,10 +110,6 @@ public final class AnalysisDisplayMapper {
             if ("false".equalsIgnoreCase(v)) return false;
         }
         return null;
-    }
-    private static Number number(JsonNode r, String key) {
-        JsonNode n = r.get(key);
-        return (n != null && n.isNumber()) ? n.numberValue() : null;
     }
     private static List<String> listOfText(JsonNode arr) {
         if (arr == null || !arr.isArray()) return null;

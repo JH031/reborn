@@ -59,7 +59,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userId));
 
-        // 이메일 변경 시: 형식은 @Valid로 1차 체크, 여기서는 중복만 확인
         if (req.getEmail() != null && !req.getEmail().isBlank()) {
             String newEmail = req.getEmail().trim();
             if (!newEmail.equals(user.getEmail())) {
@@ -70,18 +69,15 @@ public class UserService {
             }
         }
 
-        // 학년 변경
         if (req.getGrade() != null) {
             int g = req.getGrade();
             user.setGrade(g);
         }
 
-        // 학교 변경
         if (req.getSchool() != null) {
             user.setSchool(req.getSchool());
         }
 
-        // 저장
         userRepository.save(user);
 
         return UserProfileResponse.builder()

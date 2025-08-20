@@ -88,12 +88,12 @@ public class GeminiInlineService {
 - 절대 ```json 같은 코드블록으로 감싸지 말고, 순수 JSON만 출력하라.
 """;
 
-    /** 퍼블릭/프리사인드 S3 URL을 인라인(Base64)로 변환해 Gemini 호출 */
+
     public String generateFromImageUrl(String imageUrl, String prompt) {
         return generateFromImageUrl(imageUrl, prompt, true);
     }
 
-    /** 새 메서드: 기본 프롬프트 prepend 여부를 호출자가 제어 */
+
     public String generateFromImageUrl(String imageUrl, String prompt, boolean prependDefault) {
         byte[] bytes = http.get()
                 .uri(imageUrl)
@@ -117,7 +117,6 @@ public class GeminiInlineService {
                     ? DEFAULT_ANALYSIS_PROMPT
                     : DEFAULT_ANALYSIS_PROMPT + "\n\n" + prompt;
         } else {
-            // 후속턴(이미지 포함)에서 기본 프롬프트를 붙이지 않음
             instruction = (prompt == null) ? "" : prompt;
         }
 
@@ -177,7 +176,7 @@ public class GeminiInlineService {
     }
 
     public String generateFromText(String prompt) {
-        return generateFromText(prompt, false); // ✅ 기본값 false로 변경
+        return generateFromText(prompt, false);
     }
 
     public String generateFromText(String prompt, boolean prependDefault) {
