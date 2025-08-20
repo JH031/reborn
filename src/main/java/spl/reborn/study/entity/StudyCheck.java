@@ -32,7 +32,7 @@ public class StudyCheck {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private UserStudy userStudy;
 
-    // 1, 4, 7, 14, 30 중 하나
+
     @Column(nullable = false)
     private int stageDay;
 

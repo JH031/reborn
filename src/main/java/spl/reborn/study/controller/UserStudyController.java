@@ -25,7 +25,7 @@ public class UserStudyController {
     private final StudyCheckService studyCheckService;
     private final UserRepository userRepository; // ← 토큰의 userid(또는 username)로 DB에서 id를 찾기 위해 주입
 
-    /** 학습 기록 생성: userId는 JWT에서 추출 */
+    // 학습 기록 생성
     @PostMapping
     public ResponseEntity<Long> save(@RequestParam String contentTitle,
                                      @RequestParam LocalDate studyDate) {
@@ -34,7 +34,7 @@ public class UserStudyController {
         return ResponseEntity.ok(id);
     }
 
-    /** 이해도 체크: UNDERSTOOD / NOT_UNDERSTOOD (JWT 사용자) */
+    // 이해도 체크
     @PostMapping("/{studyId}/review")
     @Operation(
             summary = "이해도 체크",
@@ -48,14 +48,14 @@ public class UserStudyController {
         return ResponseEntity.ok().build();
     }
 
-    /** 체크 현황 조회 (JWT 사용자) */
+    // 체크 현황 조회
     @GetMapping("/{studyId}/review")
     public ResponseEntity<List<StudyCheck>> getReview(@PathVariable long studyId) {
         long currentUserId = getCurrentUserId();
         return ResponseEntity.ok(studyCheckService.getChecks(currentUserId, studyId));
     }
 
-    /** JWT의 principal(=username/userid) → DB 조회로 실제 PK(id) 획득 */
+
     private long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {

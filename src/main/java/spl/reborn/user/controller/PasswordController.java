@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import spl.reborn.user.dto.ResetPasswordRequest;
 import spl.reborn.user.dto.SendResetLinkRequest;
 import spl.reborn.user.dto.VerifyTokenRequest;
-import spl.reborn.user.service.PasswordResetService; // ★ 중요
+import spl.reborn.user.service.PasswordResetService;
 
 @RestController
 @RequestMapping("/api/password")

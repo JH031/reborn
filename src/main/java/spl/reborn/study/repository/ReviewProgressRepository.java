@@ -12,9 +12,8 @@ import java.util.Optional;
 
 public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, Long> {
 
-    /**
-     * 지정한 날짜에 해야 할 복습 목록
-     */
+    // 지정한 날짜에 해야 할 복습 목록
+
     @Query("""
         select rp
         from ReviewProgress rp
@@ -27,9 +26,7 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
     List<ReviewProgress> findDueOn(@Param("userId") Long userId,
                                    @Param("targetDate") LocalDate targetDate);
 
-    /**
-     * 기한이 지난 복습 + 오늘 복습 목록
-     */
+
     @Query("""
         select rp
         from ReviewProgress rp
@@ -42,9 +39,6 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
     List<ReviewProgress> findOverdueAndToday(@Param("userId") Long userId,
                                              @Param("targetDate") LocalDate targetDate);
 
-    /**
-     * 진행도 1건 조회: userStudy.id + owner.id 기준
-     * (StudyCheckService에서 진행도 갱신 시 사용)
-     */
+
     Optional<ReviewProgress> findByUserStudy_IdAndOwner_Id(Long userStudyId, Long ownerId);
 }

@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 public class ReviewDtos {
 
-    /** (응답) 특정 날짜에 해야 할 복습 목록 아이템 */
+    // 특정 날짜에 해야 할 복습 목록
     public record DueReviewDto(
             Long reviewProgressId,
             Long userStudyId,
@@ -18,9 +18,7 @@ public class ReviewDtos {
             LocalDate nextReviewDate,
             String imageUrl          // 이미지 URL (원본/대표)
     ) {
-        /** ReviewProgress 기반 매핑
-         *  ★★★ CHANGED: 이미지 경로를 UserStudy가 아닌 ReviewProgress에서 직접 조회
-         */
+
         public static DueReviewDto from(ReviewProgress rp) {
             return new DueReviewDto(
                     rp.getId(),
@@ -32,7 +30,7 @@ public class ReviewDtos {
             );
         }
 
-        /** ReminderRepository.ReminderCardView 기반 매핑 (리마인더 조인 결과 사용) */
+
         public static DueReviewDto from(ReminderCardView v) {
             return new DueReviewDto(
                     null,                               // reviewProgressId: 리마인더 조회에는 없음
@@ -45,7 +43,7 @@ public class ReviewDtos {
         }
     }
 
-    /** (요청) 이해도 기록 */
+    // 이해도 기록
     public static class UnderstandingReq {
         public ReviewProgress.UnderstandingResult result;
     }

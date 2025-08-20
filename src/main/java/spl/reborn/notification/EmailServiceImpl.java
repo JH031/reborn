@@ -16,26 +16,25 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
-    // 선택: 발신자 주소(없으면 spring.mail.username 사용)
+    // 발신자 주소
     @Value("${mail.from:}")
     private String from;
 
-    // 선택: 테스트용 강제 수신자(설정하면 모든 메일이 이 주소로 감)
     @Value("${mail.override.to:}")
     private String overrideTo;
 
-    // spring.mail.username (발신자 기본값으로 사용)
+
     @Value("${spring.mail.username:}")
     private String mailUsername;
 
-    // 간단한 이메일 형식 검사
+
     private static final Pattern EMAIL_RE = Pattern.compile(
             "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
     );
 
     @Override
     public void sendReminder(String toEmail, String contentTitle, int offsetDays) {
-        // 1) 수신자 결정 (override 우선)
+        // 1) 수신자 결정
         String to = (overrideTo != null && !overrideTo.isBlank()) ? overrideTo : toEmail;
 
         // 2) 수신자 유효성 검사
@@ -49,7 +48,7 @@ public class EmailServiceImpl implements EmailService {
             return;
         }
 
-        // 3) 발신자 결정: mail.from → spring.mail.username 순
+        // mail.from → spring.mail.username 순
         String sender = (from != null && !from.isBlank()) ? from : mailUsername;
 
         String title = (contentTitle != null && !contentTitle.isBlank()) ? contentTitle : "복습 알림";
@@ -61,7 +60,7 @@ public class EmailServiceImpl implements EmailService {
                 👉 지금 복습하러 가기!
                 """.formatted(title, offsetDays);
 
-        // 4) 메일 전송 (TO 한 명만; CC/BCC 없음)
+        // 4) 메일 전송
         SimpleMailMessage msg = new SimpleMailMessage();
         if (sender != null && !sender.isBlank()) {
             msg.setFrom(sender);

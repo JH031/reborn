@@ -19,7 +19,7 @@ public class PwEmailServiceImpl implements PwEmailService {
     @Override
     public void sendText(String toEmail, String subject, String body) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);          // ★ 핵심: 반드시 지정
+        message.setFrom(from);
         message.setTo(toEmail);
         message.setSubject(subject);
         message.setText(body);

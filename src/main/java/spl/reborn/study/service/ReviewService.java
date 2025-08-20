@@ -37,7 +37,7 @@ public class ReviewService {
         return u.getId();
     }
 
-    /** (마이페이지) 해당 날짜에 해야 할(또는 기한 지난+오늘) 복습 목록 */
+    // 해당 날짜에 해야 할 복습 목록
     public List<DueReviewDto> getDueList(LocalDate targetDate, boolean includeOverdue) {
         Long userId = getCurrentUserId();
         List<ReviewProgress> list = includeOverdue
@@ -46,7 +46,7 @@ public class ReviewService {
         return list.stream().map(DueReviewDto::from).toList();
     }
 
-    /** 이해도 기록 (UNDERSTOOD / NOT_UNDERSTOOD) */
+    // 이해도 기록
     @Transactional
     public void recordUnderstanding(Long reviewProgressId, UnderstandingReq req) {
         Long userId = getCurrentUserId();

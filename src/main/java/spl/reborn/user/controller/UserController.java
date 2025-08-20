@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import spl.reborn.security.JwtUtil;
 import spl.reborn.user.dto.*;
 import spl.reborn.user.entity.User;
-import spl.reborn.user.repository.UserRepository; // ★ 추가
+import spl.reborn.user.repository.UserRepository;
 import spl.reborn.user.service.UserService;
 
 import java.util.Map;
@@ -23,7 +23,7 @@ public class UserController {
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository; // ★ 추가
+    private final UserRepository userRepository;
 
     @GetMapping("/check-id")
     public ResponseEntity<Void> checkId(@RequestParam String userid) {

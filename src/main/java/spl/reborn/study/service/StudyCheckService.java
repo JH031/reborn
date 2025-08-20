@@ -28,7 +28,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class StudyCheckService {
 
-    /** 복습 오프셋(일) – stageIndex 0..n 과 매핑 */
+
     private static final int[] OFFSETS = {1, 4, 7, 14, 30};
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
@@ -41,9 +41,7 @@ public class StudyCheckService {
     private final ReminderRepository reminderRepository;
     private final ReminderService reminderService;
 
-    /**
-     * @param stageDay OFFSETS 중 하나여야 함 (1/4/7/14/30)
-     */
+
     @Transactional
     public void check(long userId, long userStudyId, int stageDay, StudyCheck.Result result) {
         if (Arrays.stream(OFFSETS).noneMatch(d -> d == stageDay)) {
@@ -65,22 +63,21 @@ public class StudyCheckService {
         log.info("[StudyCheck] BEFORE  studyId={}, userId={}, stageIndex={}, next={}, today={}, inputStageDay={}, result={}",
                 userStudyId, userId, rp.getStageIndex(), rp.getNextReviewDate(), today, stageDay, result);
 
-        // 1) 체크 기록 UPSERT (user + study + stageDay 유니크)
+        // 1) 체크 기록
         upsertStudyCheck(user, study, stageDay, result);
 
-        // 2) B정책: 당일/이후(today >= next_review_date)일 때만 진행도 갱신
+        // 2) B정책: 당일/이후 일 때만 진행도 갱신
         boolean due = !today.isBefore(rp.getNextReviewDate()); // today >= next
 
         if (due) {
             if (result == StudyCheck.Result.UNDERSTOOD) {
-                // 현재 stageIndex + 1로 진급
+
                 int nextStageIndex = rp.getStageIndex() + 1;
                 if (nextStageIndex >= OFFSETS.length) {
-                    // 마지막 단계 통과 시 완료 처리 (원하면 completed=true 등)
+
                     rp.setCompleted(true);
                     rp.setLastResult(ReviewProgress.UnderstandingResult.UNDERSTOOD);
-                    // 완료된 경우 nextReviewDate는 유지하거나 null 처리 – 정책에 맞게 선택
-                    // 여기서는 유지
+
                 } else {
                     rp.setStageIndex(nextStageIndex);
                     rp.setLastResult(ReviewProgress.UnderstandingResult.UNDERSTOOD);
@@ -95,10 +92,10 @@ public class StudyCheckService {
                 rp.setNextReviewDate(today.plusDays(OFFSETS[0]));
                 reviewProgressRepository.saveAndFlush(rp);
 
-                // 같은 학습의 기존 이해도 기록 전체 리셋(정책 유지)
+                // 같은 학습의 기존 이해도 기록 전체 리셋
                 studyCheckRepository.deleteByUser_IdAndUserStudy_Id(userId, userStudyId);
 
-                // 아직 안 보낸 리마인더 제거(중복 방지)
+
                 reminderRepository.deleteByUser_IdAndContentIdAndSentFalse(userId, userStudyId);
 
                 // 오늘을 기준으로 다시 예약
@@ -124,7 +121,7 @@ public class StudyCheckService {
         return studyCheckRepository.findByUser_IdAndUserStudy_IdOrderByStageDayAsc(userId, userStudyId);
     }
 
-    /** 중복키 방지: (user, study, stageDay) 있으면 UPDATE, 없으면 INSERT */
+
     private void upsertStudyCheck(User user, UserStudy study, int stageDay, StudyCheck.Result result) {
         Optional<StudyCheck> existing =
                 studyCheckRepository.findByUser_IdAndUserStudy_IdAndStageDay(user.getId(), study.getId(), stageDay);

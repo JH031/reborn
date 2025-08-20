@@ -16,13 +16,12 @@ public class UserStudy {
     private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    private User user;                // 권장: 연관관계 사용
+    private User user;
 
     private String contentTitle;
 
     private LocalDate studyDate;
 
-    // ★ Problem의 이미지 URL을 저장
     @Column(name = "image_url", length = 1024)
     private String imageUrl;
 }

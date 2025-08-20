@@ -22,11 +22,11 @@ public class Reminder {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private User user;
 
-    private Long contentId;          // ★ 어떤 학습(콘텐츠)인지 구분용
-    private String contentTitle;     // 메일 제목에 표시
+    private Long contentId;          // 어떤 학습인지
+    private String contentTitle;
 
 
-    private int offsetDays;          // 1,3,7,30
-    private LocalDateTime dueAt;     // 발송 예정 시각
+    private int offsetDays;
+    private LocalDateTime dueAt;
     private boolean sent = false;
 }
