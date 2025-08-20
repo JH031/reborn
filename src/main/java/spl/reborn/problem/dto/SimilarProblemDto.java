@@ -14,6 +14,6 @@ public class SimilarProblemDto {
     private String question;
     private String answer;
 
-    @JsonProperty("solution_steps") // ✅ JSON의 "solution_steps"를 이 필드에 매핑
+    @JsonProperty("solution_steps")
     private String solution;
 }

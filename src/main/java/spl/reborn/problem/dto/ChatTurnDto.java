@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL) // imageUrl이 null이면 응답에서 제외
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChatTurnDto {
     private int turn;
     private String role; // "user" 또는 "model"

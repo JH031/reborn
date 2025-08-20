@@ -17,7 +17,6 @@ public final class SubjectConceptRefiner {
 """ + raw;
     }
 
-    /** Gemini에게 재요청해 JSON만 받기 */
     public static String refine(GeminiInlineService gemini, String raw) {
         return gemini.generateFromText(buildPrompt(raw));
     }

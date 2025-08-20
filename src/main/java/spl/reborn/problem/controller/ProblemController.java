@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import spl.reborn.problem.dto.*;
@@ -46,7 +45,7 @@ public class ProblemController {
             @RequestParam Long userId,
             @PathVariable Long problemId,
             @RequestParam String prompt,
-            @RequestPart(name = "image", required = false) MultipartFile image // 파일 파트
+            @RequestPart(name = "image", required = false) MultipartFile image
     ) {
         return problemFlowService.analyzeFollowUp(userId, problemId, prompt, image);
     }

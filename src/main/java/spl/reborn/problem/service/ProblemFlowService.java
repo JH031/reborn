@@ -182,13 +182,11 @@ public class ProblemFlowService {
                 .build();
     }
 
-    /** 2-1) 후속 턴(텍스트만) — 호환용 */
     @Transactional
     public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt) {
         return analyzeFollowUp(userId, problemId, userPrompt, null);
     }
 
-    /** 2-2) 후속 턴(프롬프트 + 선택 이미지) */
     @Transactional
     public AnalyzeResponse analyzeFollowUp(Long userId, Long problemId, String userPrompt, MultipartFile image) {
         if (userPrompt == null || userPrompt.isBlank()) throw new IllegalArgumentException("프롬프트가 필요합니다.");
@@ -206,7 +204,6 @@ public class ProblemFlowService {
 
         int nextTurn = latest.getTurn() + 1;
 
-        // ✅ 사용자의 원본 프롬프트에 한국어 답변을 요청하는 구문을 추가합니다.
         String finalPrompt = userPrompt + "\n\n(답변은 반드시 한국어로 작성해주세요.)";
 
         String geminiRaw;
@@ -218,21 +215,19 @@ public class ProblemFlowService {
             } catch (IOException e) {
                 throw new RuntimeException("이미지 업로드 실패", e);
             }
-            // ✅ 수정된 finalPrompt를 전달합니다.
             geminiRaw = geminiService.generateFromImageUrl(imageUrlForThisTurn, finalPrompt, false);
         } else {
-            // ✅ 수정된 finalPrompt를 전달합니다.
             geminiRaw = geminiService.generateFromText(finalPrompt, false);
         }
 
-        // DB 저장 (항상 원문 저장, 이번 턴 이미지 URL도 저장)
+
         Analysis a = new Analysis();
         a.setProblem(problem);
         a.setTurn(nextTurn);
         a.setOption(null);
         a.setUserRequest(userPrompt);
         a.setGeminiResponse(geminiRaw);
-        a.setImageUrl(imageUrlForThisTurn);     // null 가능(이미지 없으면)
+        a.setImageUrl(imageUrlForThisTurn);
         a.setCreatedAt(LocalDateTime.now());
         analysisRepository.save(a);
 
@@ -240,15 +235,13 @@ public class ProblemFlowService {
                 .analysisId(a.getAnalysisId())
                 .turn(nextTurn)
                 .option(null)
-                .message(geminiRaw)             // ✅ Gemini 원문 그대로 반환
+                .message(geminiRaw)
                 .build();
     }
 
-    /** JSON/문장에서 subject/mainConcept를 추출해 Problem에 채움 */
     private void enrichProblem(Problem p, String geminiRaw) {
         SubjectConceptExtractor.Result r = SubjectConceptExtractor.extract(geminiRaw, objectMapper);
 
-        // 1차 시도 실패면 가볍게 재요청해서 JSON만 받기
         if (r == null) {
             try {
                 String refined = SubjectConceptRefiner.refine(geminiService, geminiRaw);
@@ -260,13 +253,11 @@ public class ProblemFlowService {
 
         boolean changed = false;
 
-        // subject: 비어있으면 채우고, 다른 값이면 최신으로 갱신할지 정책 선택
         if (isBlank(p.getSubject()) && notBlank(r.subject())) {
             p.setSubject(r.subject());
             changed = true;
         }
 
-        // mainConcept도 동일 정책
         if (isBlank(p.getMainConcept()) && notBlank(r.mainConcept())) {
             p.setMainConcept(r.mainConcept());
             changed = true;
@@ -306,17 +297,14 @@ public class ProblemFlowService {
         String rawJson = geminiService.generateFromText(prompt);
         String cleanedJson = cleanGeminiResponse(rawJson);
 
-        // JSON 문자열 내의 모든 '\'를 '\\'로 변경하여 유효한 형식으로 만듭니다.
         String escapedJson = cleanedJson.replace("\\", "\\\\");
 
         List<SimilarProblemDto> similarProblems;
         try {
-            // ✅ 수정된 escapedJson으로 파싱을 시도합니다.
             SimilarProblemResponseDto responseDto = objectMapper.readValue(escapedJson, SimilarProblemResponseDto.class);
             similarProblems = responseDto.getProblems();
             if (similarProblems == null) similarProblems = List.of();
         } catch (IOException e) {
-            // 로그를 남길 때도 수정된 JSON을 남기는 것이 디버깅에 더 좋습니다.
             log.error("Gemini 유사 문제 JSON 파싱에 실패했습니다: {}", escapedJson, e);
             similarProblems = List.of();
         }
@@ -356,7 +344,6 @@ public class ProblemFlowService {
 
     @Transactional(readOnly = true)
     public ChatHistoryResponse getChatHistory(Long userId, Long problemId) {
-        // 1. 문제 소유자 확인
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다. id=" + problemId));
 
@@ -364,30 +351,25 @@ public class ProblemFlowService {
             throw new IllegalStateException("본인의 문제에 대한 채팅 내역만 조회할 수 있습니다.");
         }
 
-        // 2. 채팅 내역 전체 조회
         List<Analysis> analyses = analysisRepository.findByProblem_ProblemIdOrderByTurnAsc(problemId);
         if (analyses.isEmpty()) {
             throw new IllegalStateException("해당 문제에 대한 분석 내역이 없습니다.");
         }
 
-        // 3. Analysis 목록을 ChatTurnDto 목록으로 변환
         List<ChatTurnDto> chatTurns = new ArrayList<>();
         for (Analysis analysis : analyses) {
-            // 사용자의 요청 (기존과 동일)
             if (analysis.getUserRequest() != null && !analysis.getUserRequest().isBlank()) {
                 chatTurns.add(new ChatTurnDto(
                         analysis.getTurn(), "user", analysis.getUserRequest(), null, analysis.getCreatedAt()
                 ));
             }
 
-            // ✅ 모델(Gemini)의 응답을 파싱하여 구조화된 객체로 변환
             Object modelContent = convertAnalysisToStructuredContent(analysis);
             chatTurns.add(new ChatTurnDto(
                     analysis.getTurn(), "model", modelContent, analysis.getImageUrl(), analysis.getCreatedAt()
             ));
         }
 
-        // 4. 최종 응답 DTO 생성 및 반환
         return new ChatHistoryResponse(
                 problem.getProblemId(),
                 problem.getOriginalImageUrl(),
@@ -397,14 +379,11 @@ public class ProblemFlowService {
 
     @Transactional(readOnly = true)
     public List<ProblemSummaryDto> getProblemList(Long userId) {
-        // 1. 해당 사용자의 모든 Problem을 최신순으로 조회
         List<Problem> problems = problemRepository.findByUser_IdOrderByCreatedAtDesc(userId);
 
         List<ProblemSummaryDto> problemSummaries = new ArrayList<>();
 
-        // 2. 각 Problem에 대해 반복
         for (Problem problem : problems) {
-            // 3. 각 Problem의 첫 번째 분석(turn=1)을 조회하여 제목 추출
             String title = analysisRepository.findFirstByProblem_ProblemIdOrderByTurnAsc(problem.getProblemId())
                     .map(firstAnalysis -> {
                         if (firstAnalysis.getGeminiResponse() != null) {
@@ -419,9 +398,8 @@ public class ProblemFlowService {
                         }
                         return "분석 내용 없음";
                     })
-                    .orElse("제목 없음"); // 첫 분석이 없는 경우
+                    .orElse("제목 없음");
 
-            // 4. DTO 생성 및 리스트에 추가
             problemSummaries.add(new ProblemSummaryDto(
                     problem.getProblemId(),
                     title,
@@ -432,11 +410,7 @@ public class ProblemFlowService {
         return problemSummaries;
     }
 
-    /**
-     * ✅ Analysis 엔티티를 프론트엔드가 사용할 구조화된 content 객체로 변환하는 헬퍼 메서드
-     */
     private Object convertAnalysisToStructuredContent(Analysis analysis) {
-        // 일반 텍스트 응답인 경우 (후속 질문)
         if (analysis.getOption() == null && analysis.getSimilarOption() == null) {
             return UnifiedProblemResponseDto.builder()
                     .analysisId(analysis.getAnalysisId())
@@ -446,7 +420,6 @@ public class ProblemFlowService {
                     .build();
         }
 
-        // 유사 문제 응답인 경우
         if (analysis.getSimilarOption() == SimilarOption.SIMILAR_PROBLEMS) {
             try {
                 String cleanedJson = cleanGeminiResponse(analysis.getGeminiResponse());
@@ -459,12 +432,10 @@ public class ProblemFlowService {
                         .similarProblems(problems)
                         .build();
             } catch (IOException e) {
-                // 파싱 실패 시 원본 텍스트라도 보여주도록 처리
                 return analysis.getGeminiResponse();
             }
         }
 
-        // 최초 분석 응답인 경우
         if (analysis.getOption() != null) {
             try {
                 Map<String, Object> displayMap = AnalysisDisplayMapper.toDisplay(analysis.getGeminiResponse(), analysis.getOption(), objectMapper);
@@ -479,7 +450,6 @@ public class ProblemFlowService {
             }
         }
 
-        // 모든 경우에 해당하지 않으면 원본 텍스트 반환
         return analysis.getGeminiResponse();
     }
 }
